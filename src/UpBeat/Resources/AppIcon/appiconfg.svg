@@ -1,7 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <g fill="#FF102E">
-    <path d="M190 356V92l214-42v238h-34V92l-146 29v235h-34z"/>
-    <ellipse cx="164" cy="369" rx="68" ry="54"/>
-    <ellipse cx="370" cy="327" rx="68" ry="54"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <g fill="#FF102E" shape-rendering="crispEdges">
+    <!-- Headband -->
+    <rect x="88" y="40" width="80" height="8"/>
+    <rect x="72" y="48" width="112" height="8"/>
+    <rect x="64" y="56" width="128" height="16"/>
+    <rect x="56" y="72" width="16" height="56"/>
+    <rect x="184" y="72" width="16" height="56"/>
+    <rect x="48" y="88" width="16" height="48"/>
+    <rect x="192" y="88" width="16" height="48"/>
+
+    <!-- Left earcup -->
+    <rect x="40" y="120" width="24" height="64"/>
+    <rect x="48" y="112" width="40" height="80"/>
+    <rect x="56" y="104" width="40" height="96"/>
+    <rect x="64" y="112" width="40" height="80"/>
+    <rect x="72" y="120" width="32" height="64"/>
+
+    <!-- Right earcup -->
+    <rect x="192" y="120" width="24" height="64"/>
+    <rect x="168" y="112" width="40" height="80"/>
+    <rect x="152" y="104" width="40" height="96"/>
+    <rect x="144" y="112" width="40" height="80"/>
+    <rect x="144" y="120" width="32" height="64"/>
+
+    <!-- Pixel cutouts / highlights -->
+    <rect x="64" y="128" width="8" height="48" fill="#000000"/>
+    <rect x="80" y="120" width="8" height="64" fill="#000000"/>
+    <rect x="176" y="128" width="8" height="48" fill="#000000"/>
+    <rect x="160" y="120" width="8" height="64" fill="#000000"/>
   </g>
 </svg>

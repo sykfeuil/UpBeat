@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
+using UpBeat.Services;
+using UpBeat.ViewModels;
+using UpBeat.Views;
 
 namespace UpBeat;
 
@@ -9,6 +13,7 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -18,6 +23,13 @@ public static class MauiProgram
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
+
+		// Services
+		builder.Services.AddSingleton<IMusicSource, YoutubeMusicSource>();
+
+		// ViewModels and pages
+		builder.Services.AddTransient<SearchViewModel>();
+		builder.Services.AddTransient<SearchPage>();
 
 #if ANDROID
 		// Use our custom Shell renderer to adjust the native tab bar

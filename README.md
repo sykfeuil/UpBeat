@@ -10,9 +10,9 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 ## Features
 
 ### Planned for v1
-- [ ] Search for music on YouTube
-- [ ] Audio-only streaming
-- [ ] Background playback with notification and lock screen controls
+- [x] Search for music on YouTube
+- [x] Audio-only streaming
+- [x] Background playback with notification and lock screen controls
 
 ### Coming later
 - [ ] Local playlists (create, edit, reorder)
