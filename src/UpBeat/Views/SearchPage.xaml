@@ -3,4 +3,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UpBeat.Views.SearchPage">
 
+    <Grid RowDefinitions="Auto,*"
+          Padding="16,16,16,0"
+          RowSpacing="16">
+
+        <!-- Search field with a neon glow -->
+        <Border Grid.Row="0"
+                BackgroundColor="{StaticResource Surface}"
+                Stroke="{StaticResource NeonRed}"
+                StrokeThickness="1.5"
+                StrokeShape="RoundRectangle 24"
+                Padding="4,0">
+            <Border.Shadow>
+                <Shadow Brush="{StaticResource NeonRedBrush}"
+                        Radius="16"
+                        Opacity="0.6"
+                        Offset="0,0" />
+            </Border.Shadow>
+
+            <SearchBar x:Name="SearchInput"
+                       Placeholder="Search"
+                       PlaceholderColor="{StaticResource Muted}"
+                       TextColor="White"
+                       SearchIconColor="{StaticResource NeonRed}"
+                       CancelButtonColor="{StaticResource NeonRed}"
+                       BackgroundColor="Transparent" />
+        </Border>
+
+        <!-- Row 1: search results (next step) -->
+
+    </Grid>
+
 </ContentPage>

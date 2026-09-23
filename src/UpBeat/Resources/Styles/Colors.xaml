@@ -8,12 +8,12 @@
     <!-- UpBeat synthwave palette -->
     <Color x:Key="Night">#0D0A12</Color>
     <Color x:Key="Surface">#17111F</Color>
-    <Color x:Key="NeonRed">#FF2A55</Color>
+    <Color x:Key="NeonRed">#FF102E</Color>
     <Color x:Key="NeonPurple">#9D4EDD</Color>
     <Color x:Key="Muted">#5E5470</Color>
 
-    <Color x:Key="Primary">#FF2A55</Color>
-    <Color x:Key="PrimaryDark">#FF2A55</Color>
+    <Color x:Key="Primary">#FF102E</Color>
+    <Color x:Key="PrimaryDark">#FF102E</Color>
     <Color x:Key="PrimaryDarkText">#242424</Color>
     <Color x:Key="Secondary">#DFD8F7</Color>
     <Color x:Key="SecondaryDarkText">#9880e5</Color>
@@ -35,6 +35,7 @@
     <Color x:Key="Gray950">#141414</Color>
 
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
+    <SolidColorBrush x:Key="NeonRedBrush" Color="{StaticResource NeonRed}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
     <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}"/>
