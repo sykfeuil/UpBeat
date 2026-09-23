@@ -44,8 +44,24 @@ All processing happens on the device: there is no server and no account. Your da
 - An Android emulator or a physical device with USB debugging enabled
 - Recommended: [Visual Studio Code](https://code.visualstudio.com/) with the [.NET MAUI extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-maui), or Visual Studio 2026
 
+- Android SDK and a JDK 21 (e.g. [Microsoft Build of OpenJDK](https://learn.microsoft.com/java/openjdk/download)). Missing Android components can be installed with:
+  ```bash
+  dotnet build src/UpBeat/UpBeat.csproj -t:InstallAndroidDependencies -f net10.0-android \
+    -p:AndroidSdkDirectory="<path-to-android-sdk>" -p:JavaSdkDirectory="<path-to-jdk>" \
+    -p:AcceptAndroidSDKLicenses=True
+  ```
+
 ### Build and run
-_Instructions will be added once the project is created._
+```bash
+git clone https://github.com/sykfeuil/UpBeat.git
+cd UpBeat
+
+# Build
+dotnet build src/UpBeat/UpBeat.csproj
+
+# Build, deploy and launch on a connected device or running emulator
+dotnet build src/UpBeat/UpBeat.csproj -t:Run -f net10.0-android
+```
 
 ## Disclaimer
 
