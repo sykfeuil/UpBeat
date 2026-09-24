@@ -1,6 +1,78 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="UpBeat.Views.PlaylistsPage">
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:controls="clr-namespace:UpBeat.Controls"
+             xmlns:models="clr-namespace:UpBeat.Models"
+             xmlns:viewModels="clr-namespace:UpBeat.ViewModels"
+             x:Class="UpBeat.Views.PlaylistsPage"
+             x:DataType="viewModels:PlaylistsViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto"
+          Padding="16,16,16,0"
+          RowSpacing="16">
+
+        <!-- Header: title and "new playlist" button -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <Label Text="Playlists"
+                   TextColor="White"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center" />
+            <ImageButton Grid.Column="1"
+                         Source="icon_add.png"
+                         Command="{Binding CreatePlaylistCommand}"
+                         WidthRequest="44"
+                         HeightRequest="44"
+                         Padding="6"
+                         BackgroundColor="Transparent" />
+        </Grid>
+
+        <!-- Playlists: tap to open, long press to rename or delete -->
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Playlists}">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:PlaylistSummary">
+                    <Border BackgroundColor="{StaticResource Surface}"
+                            Stroke="{StaticResource Muted}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="16,12">
+                        <Border.Behaviors>
+                            <toolkit:TouchBehavior PressedOpacity="0.6"
+                                                   TouchGestureCompleted="OnPlaylistTapped"
+                                                   LongPressCompleted="OnPlaylistLongPressed" />
+                        </Border.Behaviors>
+
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding Name}"
+                                   TextColor="White"
+                                   FontSize="17"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding TrackCountText}"
+                                   TextColor="{StaticResource Gray300}"
+                                   FontSize="13" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Empty state -->
+        <Label Grid.Row="1"
+               Text="No playlists yet.&#10;Tap + to create one."
+               IsVisible="{Binding IsEmpty}"
+               TextColor="{StaticResource Gray300}"
+               HorizontalTextAlignment="Center"
+               HorizontalOptions="Center"
+               VerticalOptions="Start"
+               Margin="0,32,0,0" />
+
+        <controls:MiniPlayerView Grid.Row="2" />
+
+    </Grid>
 
 </ContentPage>

@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UpBeat.Controls"
              x:Class="UpBeat.Views.HomePage">
+
+    <Grid RowDefinitions="*,Auto"
+          Padding="16,16,16,0">
+
+        <!-- Hosts the app-wide audio player (invisible, audio only) -->
+        <ContentView x:Name="PlayerHost"
+                     IsVisible="False" />
+
+        <controls:MiniPlayerView Grid.Row="1" />
+
+    </Grid>
 
 </ContentPage>

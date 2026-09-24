@@ -1,4 +1,3 @@
-using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UpBeat.Models;
@@ -8,12 +7,24 @@ namespace UpBeat.ViewModels;
 
 public partial class SearchViewModel : ObservableObject
 {
-	private readonly IMusicSource _musicSource;
+	private const string NewPlaylistOption = "+ New playlist";
 
-	public SearchViewModel(IMusicSource musicSource)
+	private readonly IMusicSource _musicSource;
+	private readonly IPlaylistRepository _playlists;
+	private readonly IDialogService _dialogs;
+
+	public SearchViewModel(IMusicSource musicSource, IPlaylistRepository playlists, IDialogService dialogs, PlayerViewModel player)
 	{
 		_musicSource = musicSource;
+		_playlists = playlists;
+		_dialogs = dialogs;
+		Player = player;
 	}
+
+	/// <summary>
+	/// The app-wide player, used to play a search result.
+	/// </summary>
+	public PlayerViewModel Player { get; }
 
 	[ObservableProperty]
 	public partial string Query { get; set; } = string.Empty;
@@ -26,15 +37,6 @@ public partial class SearchViewModel : ObservableObject
 	public partial string? Message { get; set; }
 
 	public bool HasMessage => !string.IsNullOrEmpty(Message);
-
-	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(HasCurrentTrack))]
-	public partial Track? CurrentTrack { get; set; }
-
-	public bool HasCurrentTrack => CurrentTrack is not null;
-
-	[ObservableProperty]
-	public partial MediaSource? CurrentSource { get; set; }
 
 	[RelayCommand]
 	private async Task SearchAsync()
@@ -63,21 +65,44 @@ public partial class SearchViewModel : ObservableObject
 		}
 	}
 
+	/// <summary>
+	/// Adds a search result to a playlist chosen by the user (on long press).
+	/// </summary>
 	[RelayCommand]
-	private async Task PlayAsync(Track track)
+	private async Task AddToPlaylistAsync(Track track)
 	{
-		CurrentTrack = track;
+		var playlists = await _playlists.GetPlaylistsAsync();
+		var options = playlists.Select(p => p.Name).Append(NewPlaylistOption);
 
-		try
+		var choice = await _dialogs.ChooseAsync("Add to playlist", options);
+		if (choice is null)
 		{
-			var streamUrl = await _musicSource.GetAudioStreamUrlAsync(track.Id);
-			CurrentSource = MediaSource.FromUri(streamUrl);
+			return;
 		}
-		catch (Exception)
+
+		int playlistId;
+		string playlistName;
+
+		if (choice == NewPlaylistOption)
 		{
-			CurrentTrack = null;
-			CurrentSource = null;
-			Message = "Unable to play this track.";
+			var name = await _dialogs.PromptAsync("New playlist", "Name of the playlist", "Create");
+			if (name is null)
+			{
+				return;
+			}
+
+			var playlist = await _playlists.CreatePlaylistAsync(name);
+			playlistId = playlist.Id;
+			playlistName = playlist.Name;
 		}
+		else
+		{
+			var playlist = playlists.First(p => p.Name == choice);
+			playlistId = playlist.Id;
+			playlistName = playlist.Name;
+		}
+
+		await _playlists.AddTrackAsync(playlistId, track);
+		await _dialogs.ShowToastAsync($"Added to {playlistName}");
 	}
 }

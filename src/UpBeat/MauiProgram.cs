@@ -13,6 +13,7 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseMauiCommunityToolkit()
 			.UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
 			.ConfigureFonts(fonts =>
 			{
@@ -26,10 +27,19 @@ public static class MauiProgram
 
 		// Services
 		builder.Services.AddSingleton<IMusicSource, YoutubeMusicSource>();
+		builder.Services.AddSingleton<AudioPlayerService>();
+		builder.Services.AddSingleton<IPlaylistRepository, PlaylistRepository>();
+		builder.Services.AddSingleton<IDialogService, DialogService>();
 
 		// ViewModels and pages
+		builder.Services.AddSingleton<PlayerViewModel>();
 		builder.Services.AddTransient<SearchViewModel>();
+		builder.Services.AddTransient<PlaylistsViewModel>();
+		builder.Services.AddTransient<PlaylistDetailViewModel>();
+		builder.Services.AddTransient<HomePage>();
 		builder.Services.AddTransient<SearchPage>();
+		builder.Services.AddTransient<PlaylistsPage>();
+		builder.Services.AddTransient<PlaylistDetailPage>();
 
 #if ANDROID
 		// Use our custom Shell renderer to adjust the native tab bar

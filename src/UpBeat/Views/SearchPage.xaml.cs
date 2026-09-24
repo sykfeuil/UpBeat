@@ -1,14 +1,20 @@
 using CommunityToolkit.Maui.Core;
+using UpBeat.Models;
 using UpBeat.ViewModels;
 
 namespace UpBeat.Views;
 
 public partial class SearchPage : ContentPage
 {
+	private readonly SearchViewModel _viewModel;
+
+	// A long press is followed by a "tap" event when the finger is lifted: this flag ignores it
+	private bool _isLongPressing;
+
 	public SearchPage(SearchViewModel viewModel)
 	{
 		InitializeComponent();
-		BindingContext = viewModel;
+		BindingContext = _viewModel = viewModel;
 	}
 
 	private async void OnSearchButtonPressed(object? sender, EventArgs e)
@@ -17,22 +23,29 @@ public partial class SearchPage : ContentPage
 		await SearchInput.HideSoftInputAsync(CancellationToken.None);
 	}
 
-	private void OnPlayPauseClicked(object? sender, EventArgs e)
+	// Each result row carries its Track as BindingContext
+
+	private void OnResultTapped(object? sender, TouchGestureCompletedEventArgs e)
 	{
-		if (Player.CurrentState == MediaElementState.Playing)
+		if (_isLongPressing)
 		{
-			Player.Pause();
+			_isLongPressing = false;
+			return;
 		}
-		else
+
+		if (sender is BindableObject { BindingContext: Track track })
 		{
-			Player.Play();
+			_viewModel.Player.PlayTrackCommand.Execute(track);
 		}
 	}
 
-	private void OnPlayerStateChanged(object? sender, MediaStateChangedEventArgs e)
+	private void OnResultLongPressed(object? sender, LongPressCompletedEventArgs e)
 	{
-		// Show "pause" while playing, "play" otherwise
-		Dispatcher.Dispatch(() =>
-			PlayPauseButton.Source = e.NewState == MediaElementState.Playing ? "icon_pause.png" : "icon_play.png");
+		_isLongPressing = true;
+
+		if (sender is BindableObject { BindingContext: Track track })
+		{
+			_viewModel.AddToPlaylistCommand.Execute(track);
+		}
 	}
 }

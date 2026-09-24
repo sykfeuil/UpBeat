@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UpBeat.Controls"
+             xmlns:converters="clr-namespace:UpBeat.Converters"
+             xmlns:models="clr-namespace:UpBeat.Models"
+             xmlns:viewModels="clr-namespace:UpBeat.ViewModels"
+             x:Class="UpBeat.Views.PlaylistDetailPage"
+             x:DataType="viewModels:PlaylistDetailViewModel">
+
+    <ContentPage.Resources>
+        <converters:DurationConverter x:Key="DurationConverter" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto"
+          Padding="16,16,16,0"
+          RowSpacing="16">
+
+        <!-- Header: back button and playlist name -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+            <ImageButton Source="icon_back.png"
+                         Command="{Binding GoBackCommand}"
+                         WidthRequest="40"
+                         HeightRequest="40"
+                         Padding="6"
+                         BackgroundColor="Transparent" />
+            <Label Grid.Column="1"
+                   Text="{Binding Name}"
+                   TextColor="White"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   LineBreakMode="TailTruncation"
+                   VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Tracks: tap to play, long press and drag to reorder -->
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding Tracks}"
+                        CanReorderItems="True"
+                        ReorderCompleted="OnReorderCompleted">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:PlaylistTrack">
+                    <Grid ColumnDefinitions="*,Auto,Auto"
+                          ColumnSpacing="8"
+                          Padding="8,10"
+                          BackgroundColor="{StaticResource Night}">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding PlayTrackCommand, Source={RelativeSource AncestorType={x:Type viewModels:PlaylistDetailViewModel}}, x:DataType=viewModels:PlaylistDetailViewModel}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+
+                        <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding Title}"
+                                   TextColor="White"
+                                   FontSize="16"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding Author}"
+                                   TextColor="{StaticResource Gray300}"
+                                   FontSize="13"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+
+                        <Label Grid.Column="1"
+                               Text="{Binding Duration, Converter={StaticResource DurationConverter}}"
+                               TextColor="{StaticResource Gray300}"
+                               FontSize="13"
+                               VerticalOptions="Center" />
+
+                        <ImageButton Grid.Column="2"
+                                     Source="icon_remove.png"
+                                     Command="{Binding RemoveTrackCommand, Source={RelativeSource AncestorType={x:Type viewModels:PlaylistDetailViewModel}}, x:DataType=viewModels:PlaylistDetailViewModel}"
+                                     CommandParameter="{Binding .}"
+                                     WidthRequest="36"
+                                     HeightRequest="36"
+                                     Padding="8"
+                                     BackgroundColor="Transparent" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Empty state -->
+        <Label Grid.Row="1"
+               Text="No tracks yet.&#10;Long press a search result to add it here."
+               IsVisible="{Binding IsEmpty}"
+               TextColor="{StaticResource Gray300}"
+               HorizontalTextAlignment="Center"
+               HorizontalOptions="Center"
+               VerticalOptions="Start"
+               Margin="0,32,0,0" />
+
+        <controls:MiniPlayerView Grid.Row="2" />
+
+    </Grid>
+
+</ContentPage>

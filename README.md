@@ -14,9 +14,12 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 - [x] Audio-only streaming
 - [x] Background playback with notification and lock screen controls
 
+### Also available
+- [x] Mini player on every page, with a progress bar to seek within the track
+- [x] Local playlists: create, rename, delete, add tracks (long press a search result), remove tracks, reorder by drag and drop
+
 ### Coming later
-- [ ] Local playlists (create, edit, reorder)
-- [ ] Playback queue, shuffle and repeat
+- [ ] Playback queue (play a whole playlist), shuffle and repeat
 - [ ] History and favorites
 - [ ] Offline downloads
 
@@ -30,6 +33,7 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 | Audio playback | [CommunityToolkit.Maui.MediaElement](https://learn.microsoft.com/dotnet/communitytoolkit/maui/views/mediaelement) |
 | Architecture | MVVM with [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) |
 | Local storage | SQLite via [sqlite-net-pcl](https://github.com/praeclarum/sqlite-net) |
+| UI helpers | [CommunityToolkit.Maui](https://learn.microsoft.com/dotnet/communitytoolkit/maui/) (long press, toasts) |
 
 All processing happens on the device: there is no server and no account. Your data stays on your phone.
 
