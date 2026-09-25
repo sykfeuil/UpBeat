@@ -42,20 +42,39 @@
                        FontSize="12" />
             </VerticalStackLayout>
 
-            <!-- Play/pause: the icon follows the playing state -->
-            <ImageButton Grid.Row="0" Grid.Column="2"
-                         Source="icon_play.png"
-                         Command="{Binding TogglePlayPauseCommand}"
-                         WidthRequest="40"
-                         HeightRequest="40"
-                         Padding="4"
-                         BackgroundColor="Transparent">
-                <ImageButton.Triggers>
-                    <DataTrigger TargetType="ImageButton" Binding="{Binding IsPlaying}" Value="True">
-                        <Setter Property="Source" Value="icon_pause.png" />
-                    </DataTrigger>
-                </ImageButton.Triggers>
-            </ImageButton>
+            <!-- Controls: previous/next only while a playlist is played -->
+            <HorizontalStackLayout Grid.Row="0" Grid.Column="2"
+                                   VerticalOptions="Center">
+                <ImageButton Source="icon_previous.png"
+                             Command="{Binding PlayPreviousCommand}"
+                             IsVisible="{Binding HasQueue}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent" />
+
+                <!-- Play/pause: the icon follows the playing state -->
+                <ImageButton Source="icon_play.png"
+                             Command="{Binding TogglePlayPauseCommand}"
+                             WidthRequest="40"
+                             HeightRequest="40"
+                             Padding="4"
+                             BackgroundColor="Transparent">
+                    <ImageButton.Triggers>
+                        <DataTrigger TargetType="ImageButton" Binding="{Binding IsPlaying}" Value="True">
+                            <Setter Property="Source" Value="icon_pause.png" />
+                        </DataTrigger>
+                    </ImageButton.Triggers>
+                </ImageButton>
+
+                <ImageButton Source="icon_next.png"
+                             Command="{Binding PlayNextCommand}"
+                             IsVisible="{Binding HasQueue}"
+                             WidthRequest="36"
+                             HeightRequest="36"
+                             Padding="6"
+                             BackgroundColor="Transparent" />
+            </HorizontalStackLayout>
 
             <!-- Progress bar: drag it to move within the track -->
             <Grid Grid.Row="1" Grid.ColumnSpan="3"

@@ -7,6 +7,11 @@ namespace UpBeat.Services;
 /// </summary>
 public interface IPlaylistRepository
 {
+	/// <summary>
+	/// Raised with the playlist ID when the tracks of a playlist change (added, removed, reordered, deleted).
+	/// </summary>
+	event EventHandler<int>? PlaylistChanged;
+
 	Task<IReadOnlyList<PlaylistSummary>> GetPlaylistsAsync();
 
 	Task<Playlist> CreatePlaylistAsync(string name);

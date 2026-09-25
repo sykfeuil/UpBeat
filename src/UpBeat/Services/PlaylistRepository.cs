@@ -15,6 +15,8 @@ public class PlaylistRepository : IPlaylistRepository
 		_database = database;
 	}
 
+	public event EventHandler<int>? PlaylistChanged;
+
 	public async Task<IReadOnlyList<PlaylistSummary>> GetPlaylistsAsync()
 	{
 		var db = await _database.GetConnectionAsync();
@@ -69,6 +71,8 @@ public class PlaylistRepository : IPlaylistRepository
 			connection.Execute("DELETE FROM PlaylistTracks WHERE PlaylistId = ?", playlistId);
 			connection.Delete<Playlist>(playlistId);
 		});
+
+		PlaylistChanged?.Invoke(this, playlistId);
 	}
 
 	public async Task<IReadOnlyList<PlaylistTrack>> GetTracksAsync(int playlistId)
@@ -89,12 +93,16 @@ public class PlaylistRepository : IPlaylistRepository
 			"SELECT COALESCE(MAX(Position), -1) FROM PlaylistTracks WHERE PlaylistId = ?", playlistId);
 
 		await db.InsertAsync(ToPlaylistTrack(playlistId, track, lastPosition + 1));
+
+		PlaylistChanged?.Invoke(this, playlistId);
 	}
 
 	public async Task RemoveTrackAsync(PlaylistTrack track)
 	{
 		var db = await _database.GetConnectionAsync();
 		await db.DeleteAsync(track);
+
+		PlaylistChanged?.Invoke(this, track.PlaylistId);
 	}
 
 	public async Task SaveOrderAsync(IReadOnlyList<PlaylistTrack> tracks)
@@ -109,6 +117,11 @@ public class PlaylistRepository : IPlaylistRepository
 				connection.Update(tracks[i]);
 			}
 		});
+
+		if (tracks.Count > 0)
+		{
+			PlaylistChanged?.Invoke(this, tracks[0].PlaylistId);
+		}
 	}
 
 	private static PlaylistTrack ToPlaylistTrack(int playlistId, Track track, int position) => new()

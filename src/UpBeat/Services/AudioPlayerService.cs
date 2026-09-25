@@ -25,6 +25,18 @@ public class AudioPlayerService
 				MainThread.BeginInvokeOnMainThread(() => DurationChanged?.Invoke(this, Player.Duration));
 			}
 		};
+		Player.MediaEnded += (_, _) => MainThread.BeginInvokeOnMainThread(() =>
+			MediaEnded?.Invoke(this, EventArgs.Empty));
+		Player.MediaFailed += (_, _) => MainThread.BeginInvokeOnMainThread(() =>
+			MediaFailed?.Invoke(this, EventArgs.Empty));
+
+#if ANDROID
+		// Previous/next buttons of the media notification and lock screen
+		Player.HandlerChanged += (_, _) => MediaSessionQueueControls.Attach(
+			Player,
+			onPrevious: () => PreviousRequested?.Invoke(this, EventArgs.Empty),
+			onNext: () => NextRequested?.Invoke(this, EventArgs.Empty));
+#endif
 	}
 
 	/// <summary>
@@ -44,6 +56,18 @@ public class AudioPlayerService
 
 	/// <summary>Raised when the duration of the current media is known.</summary>
 	public event EventHandler<TimeSpan>? DurationChanged;
+
+	/// <summary>Raised when the current media has been played to the end.</summary>
+	public event EventHandler? MediaEnded;
+
+	/// <summary>Raised when the current media cannot be played (e.g. the stream fails).</summary>
+	public event EventHandler? MediaFailed;
+
+	/// <summary>Raised when the "previous" button of the media notification is pressed.</summary>
+	public event EventHandler? PreviousRequested;
+
+	/// <summary>Raised when the "next" button of the media notification is pressed.</summary>
+	public event EventHandler? NextRequested;
 
 	public void Play(string streamUrl, string title, string artist, string? artworkUrl)
 	{

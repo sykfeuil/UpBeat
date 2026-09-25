@@ -15,7 +15,6 @@ public partial class PlaylistDetailViewModel : ObservableObject, IQueryAttributa
 	public const string PlaylistNameParameter = "PlaylistName";
 
 	private readonly IPlaylistRepository _repository;
-	private int _playlistId;
 
 	public PlaylistDetailViewModel(IPlaylistRepository repository, PlayerViewModel player)
 	{
@@ -24,6 +23,11 @@ public partial class PlaylistDetailViewModel : ObservableObject, IQueryAttributa
 
 		Tracks.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
 	}
+
+	/// <summary>
+	/// ID of the displayed playlist (0 until the navigation provides it).
+	/// </summary>
+	public int PlaylistId { get; private set; }
 
 	public PlayerViewModel Player { get; }
 
@@ -39,7 +43,7 @@ public partial class PlaylistDetailViewModel : ObservableObject, IQueryAttributa
 
 	public void ApplyQueryAttributes(IDictionary<string, object> query)
 	{
-		_playlistId = (int)query[PlaylistIdParameter];
+		PlaylistId = (int)query[PlaylistIdParameter];
 		Name = (string)query[PlaylistNameParameter];
 
 		LoadCommand.Execute(null);
@@ -48,7 +52,7 @@ public partial class PlaylistDetailViewModel : ObservableObject, IQueryAttributa
 	[RelayCommand]
 	private async Task LoadAsync()
 	{
-		var tracks = await _repository.GetTracksAsync(_playlistId);
+		var tracks = await _repository.GetTracksAsync(PlaylistId);
 
 		Tracks.Clear();
 		foreach (var track in tracks)
@@ -57,9 +61,12 @@ public partial class PlaylistDetailViewModel : ObservableObject, IQueryAttributa
 		}
 	}
 
+	/// <summary>
+	/// Plays the whole playlist, starting at the tapped track.
+	/// </summary>
 	[RelayCommand]
 	private Task PlayTrackAsync(PlaylistTrack track)
-		=> Player.PlayTrackCommand.ExecuteAsync(track.ToTrack());
+		=> Player.PlayPlaylistAsync(PlaylistId, track.Id);
 
 	[RelayCommand]
 	private async Task RemoveTrackAsync(PlaylistTrack track)

@@ -24,7 +24,9 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 - [x] Pixel-art look: icons, staircase frames, segmented progress bar, block loader, JetBrains Mono font
 
 ### Coming later
-- [ ] Playback queue (play a whole playlist), shuffle and repeat
+- [x] Play a whole playlist, one track after the other, looping back to the first track (the queue follows playlist edits, unplayable tracks are skipped)
+- [x] Previous/next buttons in the mini player, the media notification and the lock screen
+- [ ] Shuffle
 - [ ] Favorites
 - [ ] Offline downloads
 
