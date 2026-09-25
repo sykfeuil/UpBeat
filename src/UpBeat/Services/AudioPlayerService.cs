@@ -67,4 +67,13 @@ public class AudioPlayerService
 	}
 
 	public Task SeekToAsync(TimeSpan position) => Player.SeekTo(position);
+
+	/// <summary>
+	/// Stops playback and releases the native player, which also removes the media notification.
+	/// </summary>
+	public void Release()
+	{
+		Player.Stop();
+		Player.Handler?.DisconnectHandler();
+	}
 }

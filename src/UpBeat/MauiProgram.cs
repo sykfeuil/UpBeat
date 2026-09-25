@@ -52,6 +52,11 @@ public static class MauiProgram
 			var searchPlate = handler.PlatformView.FindViewById(Resource.Id.search_plate);
 			searchPlate?.SetBackgroundColor(Android.Graphics.Color.Transparent);
 		});
+
+		// MAUI bug: applying the text color also paints the search icon with the theme's default color (white).
+		// The text color is applied again when the field loses focus, so the icon color is applied again after it.
+		Microsoft.Maui.Handlers.SearchBarHandler.Mapper.AppendToMapping(nameof(SearchBar.TextColor), (handler, view) =>
+			handler.UpdateValue(nameof(SearchBar.SearchIconColor)));
 #endif
 
 		return builder.Build();
