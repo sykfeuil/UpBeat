@@ -11,6 +11,9 @@ public interface IPlaylistRepository
 
 	Task<Playlist> CreatePlaylistAsync(string name);
 
+	/// <summary>Creates a playlist with all the given tracks, in order.</summary>
+	Task<Playlist> ImportPlaylistAsync(string name, IReadOnlyList<Track> tracks);
+
 	Task RenamePlaylistAsync(int playlistId, string name);
 
 	/// <summary>Deletes a playlist and all its tracks.</summary>

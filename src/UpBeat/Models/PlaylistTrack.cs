@@ -27,8 +27,10 @@ public class PlaylistTrack
 
 	public TimeSpan? Duration { get; set; }
 
+	public string? ThumbnailUrl { get; set; }
+
 	/// <summary>Order of the track in its playlist (0 = first).</summary>
 	public int Position { get; set; }
 
-	public Track ToTrack() => new(TrackId, Title, Author, Duration);
+	public Track ToTrack() => new(TrackId, Title, Author, Duration, ThumbnailUrl);
 }

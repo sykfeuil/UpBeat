@@ -17,19 +17,13 @@
           Padding="16,16,16,0"
           RowSpacing="16">
 
-        <!-- Search field with a neon glow -->
+        <!-- Search field -->
         <Border Grid.Row="0"
                 BackgroundColor="{StaticResource Surface}"
                 Stroke="{StaticResource NeonRed}"
-                StrokeThickness="1.5"
-                StrokeShape="RoundRectangle 24"
+                StrokeThickness="2"
+                StrokeShape="{StaticResource PixelFrame}"
                 Padding="4,0">
-            <Border.Shadow>
-                <Shadow Brush="{StaticResource NeonRedBrush}"
-                        Radius="16"
-                        Opacity="0.6"
-                        Offset="0,0" />
-            </Border.Shadow>
 
             <SearchBar x:Name="SearchInput"
                        Text="{Binding Query}"
@@ -48,7 +42,7 @@
                         ItemsSource="{Binding Results}">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:Track">
-                    <Grid ColumnDefinitions="*,Auto"
+                    <Grid ColumnDefinitions="Auto,*,Auto"
                           ColumnSpacing="12"
                           Padding="8,10">
                         <Grid.Behaviors>
@@ -57,7 +51,11 @@
                                                    LongPressCompleted="OnResultLongPressed" />
                         </Grid.Behaviors>
 
-                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                        <controls:TrackThumbnail Grid.Column="0"
+                                                 Url="{Binding ThumbnailUrl}"
+                                                 VerticalOptions="Center" />
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                             <Label Text="{Binding Title}"
                                    TextColor="White"
                                    FontSize="16"
@@ -68,7 +66,7 @@
                                    LineBreakMode="TailTruncation" />
                         </VerticalStackLayout>
 
-                        <Label Grid.Column="1"
+                        <Label Grid.Column="2"
                                Text="{Binding Duration, Converter={StaticResource DurationConverter}}"
                                TextColor="{StaticResource Gray300}"
                                FontSize="13"
@@ -88,12 +86,11 @@
                Margin="0,32,0,0" />
 
         <!-- Loading indicator while searching -->
-        <ActivityIndicator Grid.Row="1"
-                           IsRunning="{Binding IsSearching}"
-                           Color="{StaticResource NeonRed}"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Start"
-                           Margin="0,32,0,0" />
+        <controls:PixelLoader Grid.Row="1"
+                               IsRunning="{Binding IsSearching}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Start"
+                               Margin="0,32,0,0" />
 
         <controls:MiniPlayerView Grid.Row="2" />
 

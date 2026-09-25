@@ -25,6 +25,12 @@ public partial class PlaylistsPage : ContentPage
 		_viewModel.LoadCommand.Execute(null);
 	}
 
+	private async void OnSearchButtonPressed(object? sender, EventArgs e)
+	{
+		// The search runs while typing: the search key only hides the keyboard
+		await SearchInput.HideSoftInputAsync(CancellationToken.None);
+	}
+
 	// Each playlist row carries its PlaylistSummary as BindingContext
 
 	private void OnPlaylistTapped(object? sender, TouchGestureCompletedEventArgs e)

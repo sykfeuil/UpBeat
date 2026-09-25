@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UpBeat.Controls"
              xmlns:converters="clr-namespace:UpBeat.Converters"
              xmlns:viewModels="clr-namespace:UpBeat.ViewModels"
              x:Class="UpBeat.Controls.MiniPlayerView"
@@ -13,16 +14,20 @@
     <Border IsVisible="{Binding HasCurrentTrack}"
             BackgroundColor="{StaticResource Surface}"
             Stroke="{StaticResource NeonRed}"
-            StrokeThickness="1"
-            StrokeShape="RoundRectangle 16"
+            StrokeThickness="2"
+            StrokeShape="{StaticResource PixelFrame}"
             Padding="16,8,16,4"
             Margin="0,0,0,12">
         <Grid RowDefinitions="Auto,Auto"
-              ColumnDefinitions="*,Auto"
+              ColumnDefinitions="Auto,*,Auto"
               ColumnSpacing="12">
 
             <!-- Current track -->
-            <VerticalStackLayout Grid.Row="0" Grid.Column="0" Spacing="2" VerticalOptions="Center">
+            <controls:TrackThumbnail Grid.Row="0" Grid.Column="0"
+                                     Url="{Binding CurrentTrack.ThumbnailUrl}"
+                                     VerticalOptions="Center" />
+
+            <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2" VerticalOptions="Center">
                 <Label Text="{Binding CurrentTrack.Title}"
                        TextColor="White"
                        FontSize="14"
@@ -38,7 +43,7 @@
             </VerticalStackLayout>
 
             <!-- Play/pause: the icon follows the playing state -->
-            <ImageButton Grid.Row="0" Grid.Column="1"
+            <ImageButton Grid.Row="0" Grid.Column="2"
                          Source="icon_play.png"
                          Command="{Binding TogglePlayPauseCommand}"
                          WidthRequest="40"
@@ -53,7 +58,7 @@
             </ImageButton>
 
             <!-- Progress bar: drag it to move within the track -->
-            <Grid Grid.Row="1" Grid.ColumnSpan="2"
+            <Grid Grid.Row="1" Grid.ColumnSpan="3"
                   ColumnDefinitions="Auto,*,Auto"
                   ColumnSpacing="4">
                 <Label Grid.Column="0"
@@ -61,13 +66,18 @@
                        TextColor="{StaticResource Gray300}"
                        FontSize="11"
                        VerticalOptions="Center" />
+                <!-- Pixel blocks drawn under a Slider whose tracks are transparent: the Slider only handles touches and the thumb -->
+                <controls:PixelProgressBar Grid.Column="1"
+                                           Progress="{Binding Progress}"
+                                           VerticalOptions="Center"
+                                           Margin="12,0" />
                 <Slider Grid.Column="1"
                         Minimum="0"
                         Maximum="{Binding DurationSeconds}"
                         Value="{Binding PositionSeconds}"
-                        MinimumTrackColor="{StaticResource NeonRed}"
-                        MaximumTrackColor="{StaticResource Muted}"
-                        ThumbColor="{StaticResource NeonRed}"
+                        MinimumTrackColor="Transparent"
+                        MaximumTrackColor="Transparent"
+                        ThumbImageSource="icon_thumb.png"
                         DragStartedCommand="{Binding BeginSeekCommand}"
                         DragCompletedCommand="{Binding EndSeekCommand}" />
                 <Label Grid.Column="2"

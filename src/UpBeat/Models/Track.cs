@@ -7,4 +7,5 @@ namespace UpBeat.Models;
 /// <param name="Title">Title of the track.</param>
 /// <param name="Author">Author or channel that published the track.</param>
 /// <param name="Duration">Duration of the track, or <c>null</c> if unknown (e.g. live streams).</param>
-public record Track(string Id, string Title, string Author, TimeSpan? Duration);
+/// <param name="ThumbnailUrl">URL of a small thumbnail image, or <c>null</c> if none.</param>
+public record Track(string Id, string Title, string Author, TimeSpan? Duration, string? ThumbnailUrl);

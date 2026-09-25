@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <g fill="#FF102E" shape-rendering="crispEdges">
+  <!-- Moved down by 2 pixels so that the headphones are centered vertically -->
+  <g fill="#FF102E" shape-rendering="crispEdges" transform="translate(0 2)">
     <!-- Headband -->
     <rect x="22" y="10" width="20" height="2"/>
     <rect x="18" y="12" width="28" height="2"/>

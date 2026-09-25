@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using UpBeat.Helpers;
 using UpBeat.Models;
 using UpBeat.Services;
 
@@ -16,9 +17,7 @@ public partial class SearchViewModel : ObservableObject
 	private readonly IMusicSource _musicSource;
 	private readonly IPlaylistRepository _playlists;
 	private readonly IDialogService _dialogs;
-
-	// Cancels the running search when a newer one starts
-	private CancellationTokenSource? _searchCancellation;
+	private readonly Debouncer _searchDebouncer = new();
 
 	public SearchViewModel(IMusicSource musicSource, IPlaylistRepository playlists, IDialogService dialogs, PlayerViewModel player)
 	{
@@ -59,15 +58,12 @@ public partial class SearchViewModel : ObservableObject
 	[RelayCommand]
 	private Task SearchAsync() => RunSearchAsync(Query, TimeSpan.Zero);
 
-	private async Task RunSearchAsync(string text, TimeSpan delay)
+	private Task RunSearchAsync(string text, TimeSpan delay)
 	{
-		// Only the latest text matters: cancel the previous search
-		_searchCancellation?.Cancel();
-		var cancellation = _searchCancellation = new CancellationTokenSource();
-
 		var query = text.Trim();
 		if (query.Length < MinQueryLength)
 		{
+			_searchDebouncer.Cancel();
 			IsSearching = false;
 
 			if (query.Length == 0)
@@ -76,36 +72,34 @@ public partial class SearchViewModel : ObservableObject
 				Message = null;
 			}
 
-			return;
+			return Task.CompletedTask;
 		}
 
-		try
+		// Only the latest text matters: a newer search cancels this one
+		return _searchDebouncer.RunAsync(delay, async cancellationToken =>
 		{
-			// If another character is typed during this delay, this search is cancelled
-			await Task.Delay(delay, cancellation.Token);
-
 			IsSearching = true;
-			var results = await _musicSource.SearchAsync(query, cancellation.Token);
 
-			Results = results;
-			Message = results.Count == 0 ? "No results found" : null;
-		}
-		catch (OperationCanceledException)
-		{
-			// Replaced by a newer search: nothing to do
-		}
-		catch (Exception) when (!cancellation.IsCancellationRequested)
-		{
-			Message = "Search failed. Check your internet connection.";
-		}
-		finally
-		{
-			// A newer search may be running: only the latest one updates the indicator
-			if (cancellation == _searchCancellation)
+			try
 			{
-				IsSearching = false;
+				var results = await _musicSource.SearchAsync(query, cancellationToken);
+
+				Results = results;
+				Message = results.Count == 0 ? "No results found" : null;
 			}
-		}
+			catch (Exception) when (!cancellationToken.IsCancellationRequested)
+			{
+				Message = "Search failed. Check your internet connection.";
+			}
+			finally
+			{
+				// A cancelled search leaves the indicator to the newer one
+				if (!cancellationToken.IsCancellationRequested)
+				{
+					IsSearching = false;
+				}
+			}
+		});
 	}
 
 	/// <summary>

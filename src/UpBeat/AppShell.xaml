@@ -21,6 +21,11 @@
             Icon="tab_playlists.png"
             ContentTemplate="{DataTemplate views:PlaylistsPage}"
             Route="playlists" />
+
+        <ShellContent
+            Icon="tab_history.png"
+            ContentTemplate="{DataTemplate views:HistoryPage}"
+            Route="history" />
     </TabBar>
 
 </Shell>

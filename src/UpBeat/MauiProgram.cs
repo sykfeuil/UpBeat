@@ -17,8 +17,8 @@ public static class MauiProgram
 			.UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
 			.ConfigureFonts(fonts =>
 			{
-				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+				fonts.AddFont("JetBrainsMono-Regular.ttf", "JetBrainsMonoRegular");
+				fonts.AddFont("JetBrainsMono-Bold.ttf", "JetBrainsMonoBold");
 			});
 
 #if DEBUG
@@ -28,7 +28,9 @@ public static class MauiProgram
 		// Services
 		builder.Services.AddSingleton<IMusicSource, YoutubeMusicSource>();
 		builder.Services.AddSingleton<AudioPlayerService>();
+		builder.Services.AddSingleton<AppDatabase>();
 		builder.Services.AddSingleton<IPlaylistRepository, PlaylistRepository>();
+		builder.Services.AddSingleton<IHistoryRepository, HistoryRepository>();
 		builder.Services.AddSingleton<IDialogService, DialogService>();
 
 		// ViewModels and pages
@@ -36,10 +38,12 @@ public static class MauiProgram
 		builder.Services.AddTransient<SearchViewModel>();
 		builder.Services.AddTransient<PlaylistsViewModel>();
 		builder.Services.AddTransient<PlaylistDetailViewModel>();
+		builder.Services.AddTransient<HistoryViewModel>();
 		builder.Services.AddTransient<HomePage>();
 		builder.Services.AddTransient<SearchPage>();
 		builder.Services.AddTransient<PlaylistsPage>();
 		builder.Services.AddTransient<PlaylistDetailPage>();
+		builder.Services.AddTransient<HistoryPage>();
 
 #if ANDROID
 		// Use our custom Shell renderer to adjust the native tab bar
@@ -51,6 +55,13 @@ public static class MauiProgram
 		{
 			var searchPlate = handler.PlatformView.FindViewById(Resource.Id.search_plate);
 			searchPlate?.SetBackgroundColor(Android.Graphics.Color.Transparent);
+		});
+
+		// Replace the native magnifier and clear icons of the SearchBar with the app's pixel-art icons
+		Microsoft.Maui.Handlers.SearchBarHandler.Mapper.AppendToMapping("PixelIcons", (handler, view) =>
+		{
+			handler.PlatformView.FindViewById<Android.Widget.ImageView>(Resource.Id.search_mag_icon)?.SetImageResource(Resource.Drawable.icon_search);
+			handler.PlatformView.FindViewById<Android.Widget.ImageView>(Resource.Id.search_close_btn)?.SetImageResource(Resource.Drawable.icon_clear);
 		});
 
 		// MAUI bug: applying the text color also paints the search icon with the theme's default color (white).

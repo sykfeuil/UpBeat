@@ -5,8 +5,8 @@
              xmlns:converters="clr-namespace:UpBeat.Converters"
              xmlns:models="clr-namespace:UpBeat.Models"
              xmlns:viewModels="clr-namespace:UpBeat.ViewModels"
-             x:Class="UpBeat.Views.PlaylistDetailPage"
-             x:DataType="viewModels:PlaylistDetailViewModel">
+             x:Class="UpBeat.Views.HistoryPage"
+             x:DataType="viewModels:HistoryViewModel">
 
     <ContentPage.Resources>
         <converters:DurationConverter x:Key="DurationConverter" />
@@ -16,43 +16,28 @@
           Padding="16,16,16,0"
           RowSpacing="16">
 
-        <!-- Header: back button and playlist name -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="8">
-            <ImageButton Source="icon_back.png"
-                         Command="{Binding GoBackCommand}"
-                         WidthRequest="40"
-                         HeightRequest="40"
-                         Padding="6"
-                         BackgroundColor="Transparent" />
-            <Label Grid.Column="1"
-                   Text="{Binding Name}"
-                   TextColor="White"
-                   FontSize="24"
-                   FontFamily="JetBrainsMonoBold"
-                   LineBreakMode="TailTruncation"
-                   VerticalOptions="Center" />
-        </Grid>
+        <Label Grid.Row="0"
+               Text="Recently played"
+               TextColor="White"
+               FontSize="26"
+               FontFamily="JetBrainsMonoBold" />
 
-        <!-- Tracks: tap to play, long press and drag to reorder -->
+        <!-- History: the most recent first, tap to play again -->
         <CollectionView Grid.Row="1"
-                        ItemsSource="{Binding Tracks}"
-                        CanReorderItems="True"
-                        ReorderCompleted="OnReorderCompleted">
+                        ItemsSource="{Binding Entries}">
             <CollectionView.ItemTemplate>
-                <DataTemplate x:DataType="models:PlaylistTrack">
-                    <Grid ColumnDefinitions="Auto,*,Auto,Auto"
-                          ColumnSpacing="8"
-                          Padding="8,10"
-                          BackgroundColor="{StaticResource Night}">
+                <DataTemplate x:DataType="models:HistoryEntry">
+                    <Grid ColumnDefinitions="Auto,*,Auto"
+                          ColumnSpacing="12"
+                          Padding="8,10">
                         <Grid.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding PlayTrackCommand, Source={RelativeSource AncestorType={x:Type viewModels:PlaylistDetailViewModel}}, x:DataType=viewModels:PlaylistDetailViewModel}"
+                            <TapGestureRecognizer Command="{Binding PlayTrackCommand, Source={RelativeSource AncestorType={x:Type viewModels:HistoryViewModel}}, x:DataType=viewModels:HistoryViewModel}"
                                                   CommandParameter="{Binding .}" />
                         </Grid.GestureRecognizers>
 
                         <controls:TrackThumbnail Grid.Column="0"
                                                  Url="{Binding ThumbnailUrl}"
-                                                 VerticalOptions="Center"
-                                                 Margin="0,0,4,0" />
+                                                 VerticalOptions="Center" />
 
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                             <Label Text="{Binding Title}"
@@ -70,15 +55,6 @@
                                TextColor="{StaticResource Gray300}"
                                FontSize="13"
                                VerticalOptions="Center" />
-
-                        <ImageButton Grid.Column="3"
-                                     Source="icon_remove.png"
-                                     Command="{Binding RemoveTrackCommand, Source={RelativeSource AncestorType={x:Type viewModels:PlaylistDetailViewModel}}, x:DataType=viewModels:PlaylistDetailViewModel}"
-                                     CommandParameter="{Binding .}"
-                                     WidthRequest="36"
-                                     HeightRequest="36"
-                                     Padding="8"
-                                     BackgroundColor="Transparent" />
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
@@ -86,7 +62,7 @@
 
         <!-- Empty state -->
         <Label Grid.Row="1"
-               Text="No tracks yet.&#10;Long press a search result to add it here."
+               Text="Nothing played yet.&#10;Tracks you listen to will appear here."
                IsVisible="{Binding IsEmpty}"
                TextColor="{StaticResource Gray300}"
                HorizontalTextAlignment="Center"

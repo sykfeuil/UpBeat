@@ -12,14 +12,16 @@ public partial class PlayerViewModel : ObservableObject
 {
 	private readonly IMusicSource _musicSource;
 	private readonly AudioPlayerService _audioPlayer;
+	private readonly IHistoryRepository _history;
 
 	// While the user drags the progress bar, position updates from the player are ignored
 	private bool _isSeeking;
 
-	public PlayerViewModel(IMusicSource musicSource, AudioPlayerService audioPlayer)
+	public PlayerViewModel(IMusicSource musicSource, AudioPlayerService audioPlayer, IHistoryRepository history)
 	{
 		_musicSource = musicSource;
 		_audioPlayer = audioPlayer;
+		_history = history;
 
 		_audioPlayer.PlayingChanged += (_, isPlaying) => IsPlaying = isPlaying;
 		_audioPlayer.DurationChanged += (_, duration) => SetDuration(duration);
@@ -42,17 +44,22 @@ public partial class PlayerViewModel : ObservableObject
 	public partial bool IsPlaying { get; set; }
 
 	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(Position))]
+	[NotifyPropertyChangedFor(nameof(Position), nameof(Progress))]
 	public partial double PositionSeconds { get; set; }
 
 	public TimeSpan Position => TimeSpan.FromSeconds(PositionSeconds);
 
 	// At least 1 second, because the progress bar maximum must be greater than its minimum (0)
 	[ObservableProperty]
-	[NotifyPropertyChangedFor(nameof(Duration))]
+	[NotifyPropertyChangedFor(nameof(Duration), nameof(Progress))]
 	public partial double DurationSeconds { get; set; } = 1;
 
 	public TimeSpan Duration => TimeSpan.FromSeconds(DurationSeconds);
+
+	/// <summary>
+	/// Elapsed part of the track, from 0 to 1, for the progress bar.
+	/// </summary>
+	public double Progress => Math.Clamp(PositionSeconds / DurationSeconds, 0, 1);
 
 	[ObservableProperty]
 	[NotifyPropertyChangedFor(nameof(HasError))]
@@ -78,7 +85,8 @@ public partial class PlayerViewModel : ObservableObject
 				return;
 			}
 
-			_audioPlayer.Play(streamUrl, track.Title, track.Author);
+			_audioPlayer.Play(streamUrl, track.Title, track.Author, track.ThumbnailUrl);
+			await _history.AddAsync(track);
 		}
 		catch (Exception) when (CurrentTrack == track)
 		{

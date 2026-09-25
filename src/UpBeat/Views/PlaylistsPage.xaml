@@ -8,7 +8,7 @@
              x:Class="UpBeat.Views.PlaylistsPage"
              x:DataType="viewModels:PlaylistsViewModel">
 
-    <Grid RowDefinitions="Auto,*,Auto"
+    <Grid RowDefinitions="Auto,Auto,*,Auto"
           Padding="16,16,16,0"
           RowSpacing="16">
 
@@ -17,7 +17,7 @@
             <Label Text="Playlists"
                    TextColor="White"
                    FontSize="26"
-                   FontAttributes="Bold"
+                   FontFamily="JetBrainsMonoBold"
                    VerticalOptions="Center" />
             <ImageButton Grid.Column="1"
                          Source="icon_add.png"
@@ -28,9 +28,28 @@
                          BackgroundColor="Transparent" />
         </Grid>
 
-        <!-- Playlists: tap to open, long press to rename or delete -->
-        <CollectionView Grid.Row="1"
-                        ItemsSource="{Binding Playlists}">
+        <!-- Search field to find playlists to import -->
+        <Border Grid.Row="1"
+                BackgroundColor="{StaticResource Surface}"
+                Stroke="{StaticResource Muted}"
+                StrokeThickness="2"
+                StrokeShape="{StaticResource PixelFrame}"
+                Padding="4,0">
+            <SearchBar x:Name="SearchInput"
+                       Text="{Binding Query}"
+                       SearchButtonPressed="OnSearchButtonPressed"
+                       Placeholder="Search playlists to import"
+                       PlaceholderColor="{StaticResource Muted}"
+                       TextColor="White"
+                       SearchIconColor="{StaticResource NeonRed}"
+                       CancelButtonColor="{StaticResource NeonRed}"
+                       BackgroundColor="Transparent" />
+        </Border>
+
+        <!-- User's playlists: tap to open, long press to rename or delete -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding Playlists}"
+                        IsVisible="{Binding IsListMode}">
             <CollectionView.ItemsLayout>
                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
             </CollectionView.ItemsLayout>
@@ -38,8 +57,8 @@
                 <DataTemplate x:DataType="models:PlaylistSummary">
                     <Border BackgroundColor="{StaticResource Surface}"
                             Stroke="{StaticResource Muted}"
-                            StrokeThickness="1"
-                            StrokeShape="RoundRectangle 12"
+                            StrokeThickness="2"
+                            StrokeShape="{StaticResource PixelFrame}"
                             Padding="16,12">
                         <Border.Behaviors>
                             <toolkit:TouchBehavior PressedOpacity="0.6"
@@ -61,17 +80,64 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Empty state -->
-        <Label Grid.Row="1"
-               Text="No playlists yet.&#10;Tap + to create one."
-               IsVisible="{Binding IsEmpty}"
+        <!-- Found playlists: tap to import -->
+        <CollectionView Grid.Row="2"
+                        ItemsSource="{Binding SearchResults}"
+                        IsVisible="{Binding IsSearchMode}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:PlaylistResult">
+                    <Grid ColumnDefinitions="Auto,*"
+                          ColumnSpacing="12"
+                          Padding="8,10">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding ImportPlaylistCommand, Source={RelativeSource AncestorType={x:Type viewModels:PlaylistsViewModel}}, x:DataType=viewModels:PlaylistsViewModel}"
+                                                  CommandParameter="{Binding .}" />
+                        </Grid.GestureRecognizers>
+
+                        <controls:TrackThumbnail Grid.Column="0"
+                                                 Url="{Binding ThumbnailUrl}"
+                                                 VerticalOptions="Center" />
+
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="{Binding Title}"
+                                   TextColor="White"
+                                   FontSize="16"
+                                   LineBreakMode="TailTruncation" />
+                            <Label Text="{Binding Author}"
+                                   TextColor="{StaticResource Gray300}"
+                                   FontSize="13"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Empty state (no playlists yet) or search message -->
+        <Label Grid.Row="2"
+               Text="No playlists yet.&#10;Tap + to create one, or search one to import."
+               IsVisible="{Binding ShowEmptyState}"
                TextColor="{StaticResource Gray300}"
                HorizontalTextAlignment="Center"
                HorizontalOptions="Center"
                VerticalOptions="Start"
                Margin="0,32,0,0" />
+        <Label Grid.Row="2"
+               Text="{Binding SearchMessage}"
+               IsVisible="{Binding HasSearchMessage}"
+               TextColor="{StaticResource Gray300}"
+               HorizontalOptions="Center"
+               VerticalOptions="Start"
+               Margin="0,32,0,0" />
 
-        <controls:MiniPlayerView Grid.Row="2" />
+        <!-- Loading indicator while searching or importing -->
+        <controls:PixelLoader Grid.Row="2"
+                               IsRunning="{Binding IsBusy}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Start"
+                               Margin="0,32,0,0" />
+
+        <controls:MiniPlayerView Grid.Row="3" />
 
     </Grid>
 

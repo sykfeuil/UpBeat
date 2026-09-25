@@ -4,29 +4,22 @@ using UpBeat.Models;
 namespace UpBeat.Services;
 
 /// <summary>
-/// Playlist storage in a local SQLite database, in the private folder of the app.
+/// Playlists stored in the local database.
 /// </summary>
 public class PlaylistRepository : IPlaylistRepository
 {
-	private const string DatabaseFileName = "upbeat.db3";
+	private readonly AppDatabase _database;
 
-	private readonly SQLiteAsyncConnection _database;
-
-	// Tables are created once, on first use
-	private readonly Lazy<Task> _initialization;
-
-	public PlaylistRepository()
+	public PlaylistRepository(AppDatabase database)
 	{
-		var databasePath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
-		_database = new SQLiteAsyncConnection(databasePath);
-		_initialization = new Lazy<Task>(InitializeAsync);
+		_database = database;
 	}
 
 	public async Task<IReadOnlyList<PlaylistSummary>> GetPlaylistsAsync()
 	{
-		await _initialization.Value;
+		var db = await _database.GetConnectionAsync();
 
-		return await _database.QueryAsync<PlaylistSummary>(
+		return await db.QueryAsync<PlaylistSummary>(
 			"""
 			SELECT p.Id, p.Name, COUNT(t.Id) AS TrackCount
 			FROM Playlists p
@@ -38,25 +31,40 @@ public class PlaylistRepository : IPlaylistRepository
 
 	public async Task<Playlist> CreatePlaylistAsync(string name)
 	{
-		await _initialization.Value;
+		var db = await _database.GetConnectionAsync();
 
 		var playlist = new Playlist { Name = name };
-		await _database.InsertAsync(playlist);
+		await db.InsertAsync(playlist);
+		return playlist;
+	}
+
+	public async Task<Playlist> ImportPlaylistAsync(string name, IReadOnlyList<Track> tracks)
+	{
+		var db = await _database.GetConnectionAsync();
+		var playlist = new Playlist { Name = name };
+
+		// The playlist and all its tracks are created together, or not at all
+		await db.RunInTransactionAsync(connection =>
+		{
+			connection.Insert(playlist);
+			connection.InsertAll(tracks.Select((track, index) => ToPlaylistTrack(playlist.Id, track, index)), runInTransaction: false);
+		});
+
 		return playlist;
 	}
 
 	public async Task RenamePlaylistAsync(int playlistId, string name)
 	{
-		await _initialization.Value;
-		await _database.ExecuteAsync("UPDATE Playlists SET Name = ? WHERE Id = ?", name, playlistId);
+		var db = await _database.GetConnectionAsync();
+		await db.ExecuteAsync("UPDATE Playlists SET Name = ? WHERE Id = ?", name, playlistId);
 	}
 
 	public async Task DeletePlaylistAsync(int playlistId)
 	{
-		await _initialization.Value;
+		var db = await _database.GetConnectionAsync();
 
 		// Both deletions succeed or fail together
-		await _database.RunInTransactionAsync(connection =>
+		await db.RunInTransactionAsync(connection =>
 		{
 			connection.Execute("DELETE FROM PlaylistTracks WHERE PlaylistId = ?", playlistId);
 			connection.Delete<Playlist>(playlistId);
@@ -65,9 +73,9 @@ public class PlaylistRepository : IPlaylistRepository
 
 	public async Task<IReadOnlyList<PlaylistTrack>> GetTracksAsync(int playlistId)
 	{
-		await _initialization.Value;
+		var db = await _database.GetConnectionAsync();
 
-		return await _database.Table<PlaylistTrack>()
+		return await db.Table<PlaylistTrack>()
 			.Where(t => t.PlaylistId == playlistId)
 			.OrderBy(t => t.Position)
 			.ToListAsync();
@@ -75,33 +83,25 @@ public class PlaylistRepository : IPlaylistRepository
 
 	public async Task AddTrackAsync(int playlistId, Track track)
 	{
-		await _initialization.Value;
+		var db = await _database.GetConnectionAsync();
 
-		var lastPosition = await _database.ExecuteScalarAsync<int>(
+		var lastPosition = await db.ExecuteScalarAsync<int>(
 			"SELECT COALESCE(MAX(Position), -1) FROM PlaylistTracks WHERE PlaylistId = ?", playlistId);
 
-		await _database.InsertAsync(new PlaylistTrack
-		{
-			PlaylistId = playlistId,
-			TrackId = track.Id,
-			Title = track.Title,
-			Author = track.Author,
-			Duration = track.Duration,
-			Position = lastPosition + 1,
-		});
+		await db.InsertAsync(ToPlaylistTrack(playlistId, track, lastPosition + 1));
 	}
 
 	public async Task RemoveTrackAsync(PlaylistTrack track)
 	{
-		await _initialization.Value;
-		await _database.DeleteAsync(track);
+		var db = await _database.GetConnectionAsync();
+		await db.DeleteAsync(track);
 	}
 
 	public async Task SaveOrderAsync(IReadOnlyList<PlaylistTrack> tracks)
 	{
-		await _initialization.Value;
+		var db = await _database.GetConnectionAsync();
 
-		await _database.RunInTransactionAsync(connection =>
+		await db.RunInTransactionAsync(connection =>
 		{
 			for (var i = 0; i < tracks.Count; i++)
 			{
@@ -111,9 +111,14 @@ public class PlaylistRepository : IPlaylistRepository
 		});
 	}
 
-	private async Task InitializeAsync()
+	private static PlaylistTrack ToPlaylistTrack(int playlistId, Track track, int position) => new()
 	{
-		await _database.CreateTableAsync<Playlist>();
-		await _database.CreateTableAsync<PlaylistTrack>();
-	}
+		PlaylistId = playlistId,
+		TrackId = track.Id,
+		Title = track.Title,
+		Author = track.Author,
+		Duration = track.Duration,
+		ThumbnailUrl = track.ThumbnailUrl,
+		Position = position,
+	};
 }

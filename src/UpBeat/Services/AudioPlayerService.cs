@@ -45,11 +45,12 @@ public class AudioPlayerService
 	/// <summary>Raised when the duration of the current media is known.</summary>
 	public event EventHandler<TimeSpan>? DurationChanged;
 
-	public void Play(string streamUrl, string title, string artist)
+	public void Play(string streamUrl, string title, string artist, string? artworkUrl)
 	{
 		// Shown in the media notification and on the lock screen
 		Player.MetadataTitle = title;
 		Player.MetadataArtist = artist;
+		Player.MetadataArtworkUrl = artworkUrl ?? string.Empty;
 
 		Player.Source = MediaSource.FromUri(streamUrl);
 	}

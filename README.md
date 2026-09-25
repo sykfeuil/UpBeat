@@ -17,10 +17,15 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 ### Also available
 - [x] Mini player on every page, with a progress bar to seek within the track
 - [x] Local playlists: create, rename, delete, add tracks (long press a search result), remove tracks, reorder by drag and drop
+- [x] Search while typing
+- [x] YouTube thumbnails in lists, mini player and media notification
+- [x] Import a YouTube playlist (search it from the Playlists tab)
+- [x] Listening history (last 100 tracks, no duplicates)
+- [x] Pixel-art look: icons, staircase frames, segmented progress bar, block loader, JetBrains Mono font
 
 ### Coming later
 - [ ] Playback queue (play a whole playlist), shuffle and repeat
-- [ ] History and favorites
+- [ ] Favorites
 - [ ] Offline downloads
 
 ## Tech stack
@@ -77,3 +82,6 @@ The app does not host or distribute any content.
 
 UpBeat is free software, licensed under the [GNU General Public License v3.0](LICENSE).
 You can use, study, modify and share it, but any distributed modified version must also be released under the GPL-3.0.
+
+### Third-party assets
+- [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) font, licensed under the [SIL Open Font License 1.1](src/UpBeat/Resources/Fonts/JetBrainsMono-OFL.txt).
