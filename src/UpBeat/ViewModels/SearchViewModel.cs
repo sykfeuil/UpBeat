@@ -9,9 +9,16 @@ public partial class SearchViewModel : ObservableObject
 {
 	private const string NewPlaylistOption = "+ New playlist";
 
+	// Search while typing: wait for a short pause, and only from a few characters
+	private const int MinQueryLength = 2;
+	private static readonly TimeSpan TypingDelay = TimeSpan.FromMilliseconds(400);
+
 	private readonly IMusicSource _musicSource;
 	private readonly IPlaylistRepository _playlists;
 	private readonly IDialogService _dialogs;
+
+	// Cancels the running search when a newer one starts
+	private CancellationTokenSource? _searchCancellation;
 
 	public SearchViewModel(IMusicSource musicSource, IPlaylistRepository playlists, IDialogService dialogs, PlayerViewModel player)
 	{
@@ -38,30 +45,66 @@ public partial class SearchViewModel : ObservableObject
 
 	public bool HasMessage => !string.IsNullOrEmpty(Message);
 
+	[ObservableProperty]
+	public partial bool IsSearching { get; set; }
+
+	/// <summary>
+	/// Called by the generated Query property each time the text changes.
+	/// </summary>
+	partial void OnQueryChanged(string value) => _ = RunSearchAsync(value, TypingDelay);
+
+	/// <summary>
+	/// Search key of the keyboard: search right away.
+	/// </summary>
 	[RelayCommand]
-	private async Task SearchAsync()
+	private Task SearchAsync() => RunSearchAsync(Query, TimeSpan.Zero);
+
+	private async Task RunSearchAsync(string text, TimeSpan delay)
 	{
-		var query = Query.Trim();
-		if (query.Length == 0)
+		// Only the latest text matters: cancel the previous search
+		_searchCancellation?.Cancel();
+		var cancellation = _searchCancellation = new CancellationTokenSource();
+
+		var query = text.Trim();
+		if (query.Length < MinQueryLength)
 		{
+			IsSearching = false;
+
+			if (query.Length == 0)
+			{
+				Results = [];
+				Message = null;
+			}
+
 			return;
 		}
 
-		Message = null;
-		Results = [];
-
 		try
 		{
-			Results = await _musicSource.SearchAsync(query);
+			// If another character is typed during this delay, this search is cancelled
+			await Task.Delay(delay, cancellation.Token);
 
-			if (Results.Count == 0)
-			{
-				Message = "No results found";
-			}
+			IsSearching = true;
+			var results = await _musicSource.SearchAsync(query, cancellation.Token);
+
+			Results = results;
+			Message = results.Count == 0 ? "No results found" : null;
 		}
-		catch (Exception)
+		catch (OperationCanceledException)
+		{
+			// Replaced by a newer search: nothing to do
+		}
+		catch (Exception) when (!cancellation.IsCancellationRequested)
 		{
 			Message = "Search failed. Check your internet connection.";
+		}
+		finally
+		{
+			// A newer search may be running: only the latest one updates the indicator
+			if (cancellation == _searchCancellation)
+			{
+				IsSearching = false;
+			}
 		}
 	}
 

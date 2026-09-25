@@ -89,7 +89,7 @@
 
         <!-- Loading indicator while searching -->
         <ActivityIndicator Grid.Row="1"
-                           IsRunning="{Binding SearchCommand.IsRunning}"
+                           IsRunning="{Binding IsSearching}"
                            Color="{StaticResource NeonRed}"
                            HorizontalOptions="Center"
                            VerticalOptions="Start"
