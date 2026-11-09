@@ -15,6 +15,11 @@ public class YoutubeMusicSource : IMusicSource
 	// Thumbnails are shown small (64x36): the smallest image at least this wide is enough
 	private const int MinThumbnailWidth = 160;
 
+	private const string MixPlaylistPrefix = "RD";
+
+	// Suggested videos longer than this are skipped (compilations, full albums, podcasts…)
+	private static readonly TimeSpan MaxSuggestionDuration = TimeSpan.FromMinutes(15);
+
 	private readonly YoutubeClient _youtube = new();
 
 	// YoutubeExplode may do blocking network work (e.g. when closing HTTP responses),
@@ -74,6 +79,27 @@ public class YoutubeMusicSource : IMusicSource
 
 			IReadOnlyList<Track> result = tracks;
 			return result;
+		}, cancellationToken);
+
+	public Task<IReadOnlyList<Track>> GetSuggestedTracksAsync(string trackId, CancellationToken cancellationToken = default)
+		=> Task.Run(async () =>
+		{
+			// YouTube builds a "mix" playlist for each video: its ID is "RD" followed by the video ID.
+			// It is endless: only its first page (about 24 tracks, fetched in about a second) is read.
+			var playlistId = MixPlaylistPrefix + trackId;
+
+			await foreach (var batch in _youtube.Playlists.GetVideoBatchesAsync(playlistId, cancellationToken))
+			{
+				IReadOnlyList<Track> tracks = batch.Items
+					// Skip live streams (no duration) and long videos such as compilations
+					.Where(video => video.Duration is { } duration && duration <= MaxSuggestionDuration)
+					.Select(video => new Track(video.Id.Value, video.Title, video.Author.ChannelTitle, video.Duration, PickThumbnail(video.Thumbnails)))
+					.ToList();
+
+				return tracks;
+			}
+
+			return (IReadOnlyList<Track>)[];
 		}, cancellationToken);
 
 	/// <summary>

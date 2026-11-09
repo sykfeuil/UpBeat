@@ -24,7 +24,9 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 - [x] Pixel-art look: icons, staircase frames, segmented progress bar, block loader, JetBrains Mono font
 
 ### Coming later
-- [x] Play a whole playlist, one track after the other, looping back to the first track (the queue follows playlist edits, unplayable tracks are skipped)
+- [x] Play a whole playlist, one track after the other (unplayable tracks are skipped)
+- [x] Endless playback: after a single track or the end of a playlist, similar tracks are played (YouTube mixes)
+- [x] Play next / add to queue (long press a search result)
 - [x] Previous/next buttons in the mini player, the media notification and the lock screen
 - [ ] Shuffle
 - [ ] Favorites
@@ -72,6 +74,9 @@ dotnet build src/UpBeat/UpBeat.csproj
 
 # Build, deploy and launch on a connected device or running emulator
 dotnet build src/UpBeat/UpBeat.csproj -t:Run -f net10.0-android
+
+# Run the unit tests
+dotnet test tests/UpBeat.Tests/UpBeat.Tests.csproj
 ```
 
 ## Disclaimer

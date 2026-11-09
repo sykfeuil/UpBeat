@@ -42,12 +42,11 @@
                        FontSize="12" />
             </VerticalStackLayout>
 
-            <!-- Controls: previous/next only while a playlist is played -->
+            <!-- Controls: there is always a next track, since suggestions follow the queue -->
             <HorizontalStackLayout Grid.Row="0" Grid.Column="2"
                                    VerticalOptions="Center">
                 <ImageButton Source="icon_previous.png"
                              Command="{Binding PlayPreviousCommand}"
-                             IsVisible="{Binding HasQueue}"
                              WidthRequest="36"
                              HeightRequest="36"
                              Padding="6"
@@ -69,7 +68,6 @@
 
                 <ImageButton Source="icon_next.png"
                              Command="{Binding PlayNextCommand}"
-                             IsVisible="{Binding HasQueue}"
                              WidthRequest="36"
                              HeightRequest="36"
                              Padding="6"

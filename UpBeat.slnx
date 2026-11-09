@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/UpBeat/UpBeat.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UpBeat.Tests/UpBeat.Tests.csproj" />
+  </Folder>
 </Solution>

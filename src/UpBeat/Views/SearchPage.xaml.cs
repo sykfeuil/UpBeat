@@ -45,7 +45,7 @@ public partial class SearchPage : ContentPage
 
 		if (sender is BindableObject { BindingContext: Track track })
 		{
-			_viewModel.AddToPlaylistCommand.Execute(track);
+			_viewModel.ShowTrackMenuCommand.Execute(track);
 		}
 	}
 }

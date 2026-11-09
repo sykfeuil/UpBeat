@@ -8,6 +8,9 @@ namespace UpBeat.ViewModels;
 
 public partial class SearchViewModel : ObservableObject
 {
+	private const string PlayNextOption = "Play next";
+	private const string AddToQueueOption = "Add to queue";
+	private const string AddToPlaylistOption = "Add to playlist";
 	private const string NewPlaylistOption = "+ New playlist";
 
 	// Search while typing: wait for a short pause, and only from a few characters
@@ -103,9 +106,33 @@ public partial class SearchViewModel : ObservableObject
 	}
 
 	/// <summary>
-	/// Adds a search result to a playlist chosen by the user (on long press).
+	/// Actions on a search result (on long press).
 	/// </summary>
 	[RelayCommand]
+	private async Task ShowTrackMenuAsync(Track track)
+	{
+		var choice = await _dialogs.ChooseAsync(track.Title, [PlayNextOption, AddToQueueOption, AddToPlaylistOption]);
+		switch (choice)
+		{
+			case PlayNextOption:
+				await Player.InsertNextAsync(track);
+				await _dialogs.ShowToastAsync("Playing next");
+				break;
+
+			case AddToQueueOption:
+				await Player.AppendAsync(track);
+				await _dialogs.ShowToastAsync("Added to queue");
+				break;
+
+			case AddToPlaylistOption:
+				await AddToPlaylistAsync(track);
+				break;
+		}
+	}
+
+	/// <summary>
+	/// Adds a search result to a playlist chosen by the user.
+	/// </summary>
 	private async Task AddToPlaylistAsync(Track track)
 	{
 		var playlists = await _playlists.GetPlaylistsAsync();

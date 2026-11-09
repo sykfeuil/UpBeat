@@ -27,4 +27,10 @@ public interface IMusicSource
 	/// Gets all the tracks of a playlist.
 	/// </summary>
 	Task<IReadOnlyList<Track>> GetPlaylistTracksAsync(string playlistId, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Gets tracks similar to the given one, to keep playing after it.
+	/// The given track may be among them.
+	/// </summary>
+	Task<IReadOnlyList<Track>> GetSuggestedTracksAsync(string trackId, CancellationToken cancellationToken = default);
 }

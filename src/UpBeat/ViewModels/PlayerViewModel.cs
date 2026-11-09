@@ -7,31 +7,44 @@ namespace UpBeat.ViewModels;
 
 /// <summary>
 /// App-wide state of the player, shared by every mini player.
+/// Everything is played from a single queue: a playlist, or a single track followed by suggestions.
+/// When the queue runs out, suggestions (YouTube mixes) are added, so playback never stops.
 /// </summary>
 public partial class PlayerViewModel : ObservableObject
 {
 	// "Previous" restarts the current track if it has been playing for longer than this
 	private const double RestartThresholdSeconds = 3;
 
+	// Suggestions are loaded when no more than this many tracks are left after the playing one
+	private const int MinUpcomingTracks = 1;
+
+	// Mixes tried in a row when they only contain tracks already in the queue
+	private const int MaxMixAttempts = 3;
+
+	// Unplayable tracks in a row before stopping, instead of going through an endless queue
+	private const int MaxFailuresInARow = 5;
+
+	// Stream URLs of the recent tracks: a known URL is only used for this long, since YouTube URLs expire after a few hours
+	private const int UrlCacheCapacity = 20;
+	private static readonly TimeSpan UrlLifetime = TimeSpan.FromHours(1);
+
 	private readonly IMusicSource _musicSource;
 	private readonly AudioPlayerService _audioPlayer;
 	private readonly IHistoryRepository _history;
 	private readonly IPlaylistRepository _playlists;
+	private readonly PlaybackQueue _queue = new();
+
+	// URLs of the played tracks and of the next one, so that they start without waiting
+	private readonly StreamUrlCache _streamUrls;
 
 	// While the user drags the progress bar, position updates from the player are ignored
 	private bool _isSeeking;
 
-	// Queue: the tracks of a playlist, played one after the other. Empty when a single track is played.
-	private int? _queuePlaylistId;
-	private IReadOnlyList<PlaylistTrack> _queue = [];
-	private int _queueIndex;
-
-	// True when the playing track has been removed from its playlist:
-	// _queueIndex then points to the track that followed it, which will be played next
-	private bool _isCurrentTrackRemoved;
-
-	// Tracks that failed one after the other, to stop instead of looping forever when none can be played
+	// Tracks that failed one after the other
 	private int _failuresInARow;
+
+	// Suggestions being loaded, for the queue version they were asked for
+	private (Task Task, int QueueVersion)? _loadingSuggestions;
 
 	public PlayerViewModel(IMusicSource musicSource, AudioPlayerService audioPlayer, IHistoryRepository history, IPlaylistRepository playlists)
 	{
@@ -39,6 +52,7 @@ public partial class PlayerViewModel : ObservableObject
 		_audioPlayer = audioPlayer;
 		_history = history;
 		_playlists = playlists;
+		_streamUrls = new StreamUrlCache(trackId => _musicSource.GetAudioStreamUrlAsync(trackId), TimeProvider.System, UrlCacheCapacity, UrlLifetime);
 
 		_audioPlayer.PlayingChanged += (_, isPlaying) =>
 		{
@@ -57,12 +71,10 @@ public partial class PlayerViewModel : ObservableObject
 				PositionSeconds = position.TotalSeconds;
 			}
 		};
-		_audioPlayer.MediaEnded += (_, _) => PlayNext();
-		_audioPlayer.MediaFailed += (_, _) => OnTrackFailed();
-		_audioPlayer.NextRequested += (_, _) => PlayNext();
+		_audioPlayer.MediaEnded += (_, _) => PlayNextCommand.Execute(null);
+		_audioPlayer.MediaFailed += (_, _) => _ = OnTrackFailedAsync();
+		_audioPlayer.NextRequested += (_, _) => PlayNextCommand.Execute(null);
 		_audioPlayer.PreviousRequested += (_, _) => PlayPreviousCommand.Execute(null);
-
-		_playlists.PlaylistChanged += OnPlaylistChanged;
 	}
 
 	[ObservableProperty]
@@ -70,12 +82,6 @@ public partial class PlayerViewModel : ObservableObject
 	public partial Track? CurrentTrack { get; set; }
 
 	public bool HasCurrentTrack => CurrentTrack is not null;
-
-	/// <summary>
-	/// True while a playlist is played, to show the previous/next buttons.
-	/// </summary>
-	[ObservableProperty]
-	public partial bool HasQueue { get; set; }
 
 	[ObservableProperty]
 	public partial bool IsPlaying { get; set; }
@@ -105,81 +111,129 @@ public partial class PlayerViewModel : ObservableObject
 	public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
 	/// <summary>
-	/// Plays a single track (from the search or the history).
+	/// Plays a single track (from the search or the history), followed by suggestions.
 	/// </summary>
 	[RelayCommand]
 	private Task PlayTrackAsync(Track track)
 	{
-		SetQueue(null, []);
+		_queue.Replace([track], 0);
 		_failuresInARow = 0;
-		return LoadAndPlayAsync(track);
+		return PlayCurrentAsync();
 	}
 
 	/// <summary>
-	/// Plays the tracks of a playlist one after the other, starting at the given track.
-	/// After the last track, playback goes back to the first one.
+	/// Plays a copy of the tracks of a playlist, starting at the given track, followed by suggestions.
 	/// </summary>
 	public async Task PlayPlaylistAsync(int playlistId, int startTrackId)
 	{
 		var tracks = await _playlists.GetTracksAsync(playlistId);
-		var startIndex = IndexOf(tracks, startTrackId);
+		var startIndex = tracks.ToList().FindIndex(track => track.Id == startTrackId);
 		if (startIndex < 0)
 		{
 			return;
 		}
 
-		SetQueue(playlistId, tracks);
-		_queueIndex = startIndex;
+		_queue.Replace(tracks.Select(track => track.ToTrack()), startIndex);
 		_failuresInARow = 0;
-		await LoadAndPlayAsync(_queue[_queueIndex].ToTrack());
+		await PlayCurrentAsync();
 	}
 
 	/// <summary>
-	/// Next track of the queue, or back to the first one after the last.
+	/// Plays the track right after the current one ("Play next"). Plays it now if nothing is playing.
 	/// </summary>
-	[RelayCommand]
-	private void PlayNext()
+	public Task InsertNextAsync(Track track)
 	{
-		if (_queue.Count == 0)
+		if (_queue.Current is null)
 		{
-			return;
+			return PlayTrackAsync(track);
 		}
 
-		if (_isCurrentTrackRemoved)
+		_queue.InsertNext(track);
+		PrefetchNextUrl();
+		return Task.CompletedTask;
+	}
+
+	/// <summary>
+	/// Plays the track after the tracks already chosen, before the suggestions ("Add to queue").
+	/// Plays it now if nothing is playing.
+	/// </summary>
+	public Task AppendAsync(Track track)
+	{
+		if (_queue.Current is null)
 		{
-			// The queue already points to the track that followed the removed one
-			_isCurrentTrackRemoved = false;
-		}
-		else
-		{
-			_queueIndex = (_queueIndex + 1) % _queue.Count;
+			return PlayTrackAsync(track);
 		}
 
-		_ = LoadAndPlayAsync(_queue[_queueIndex].ToTrack());
+		_queue.Append(track);
+		PrefetchNextUrl();
+		return Task.CompletedTask;
+	}
+
+	/// <summary>
+	/// Next track of the queue. At the end of the queue, waits for suggestions.
+	/// </summary>
+	[RelayCommand(AllowConcurrentExecutions = true)]
+	private async Task PlayNextAsync()
+	{
+		await TryPlayNextAsync();
 	}
 
 	/// <summary>
 	/// Like most players: restarts the current track if it has been playing for a few seconds,
-	/// otherwise goes to the previous track of the queue (the last one before the first).
+	/// or if it is the first one; otherwise goes back to the previous track.
 	/// </summary>
-	[RelayCommand]
+	[RelayCommand(AllowConcurrentExecutions = true)]
 	private async Task PlayPreviousAsync()
 	{
-		if (_queue.Count == 0 || PositionSeconds > RestartThresholdSeconds)
+		if (_queue.Current is null)
+		{
+			return;
+		}
+
+		if (PositionSeconds > RestartThresholdSeconds || !_queue.MovePrevious())
 		{
 			await _audioPlayer.SeekToAsync(TimeSpan.Zero);
 			return;
 		}
 
-		// If the playing track was removed, the track that followed it took its place in the queue:
-		// the one just before is still the previous track
-		_isCurrentTrackRemoved = false;
-		_queueIndex = (_queueIndex - 1 + _queue.Count) % _queue.Count;
-		await LoadAndPlayAsync(_queue[_queueIndex].ToTrack());
+		await PlayCurrentAsync();
 	}
 
-	private async Task LoadAndPlayAsync(Track track)
+	/// <summary>
+	/// Moves to the next track and plays it. Returns <c>false</c> if there is none, even after loading suggestions.
+	/// </summary>
+	private async Task<bool> TryPlayNextAsync()
 	{
+		if (_queue.Current is null)
+		{
+			return false;
+		}
+
+		if (!_queue.MoveNext())
+		{
+			// End of the queue: suggestions are usually loaded already, unless the tracks were skipped quickly
+			var queueVersion = _queue.Version;
+			await LoadSuggestionsAsync();
+
+			// Another track or playlist may have been played in the meantime
+			if (_queue.Version != queueVersion || !_queue.MoveNext())
+			{
+				return false;
+			}
+		}
+
+		await PlayCurrentAsync();
+		return true;
+	}
+
+	private async Task PlayCurrentAsync()
+	{
+		if (_queue.Current is not { } item)
+		{
+			return;
+		}
+
+		var track = item.Track;
 		CurrentTrack = track;
 		ErrorMessage = null;
 		SetDuration(track.Duration ?? TimeSpan.Zero);
@@ -187,10 +241,10 @@ public partial class PlayerViewModel : ObservableObject
 
 		try
 		{
-			var streamUrl = await _musicSource.GetAudioStreamUrlAsync(track.Id);
+			var streamUrl = await _streamUrls.GetAsync(track.Id);
 
 			// Another track may have been chosen while this one was loading: keep only the latest
-			if (CurrentTrack != track)
+			if (_queue.Current != item)
 			{
 				return;
 			}
@@ -200,12 +254,19 @@ public partial class PlayerViewModel : ObservableObject
 		catch (Exception)
 		{
 			// Only the latest track matters: the failure of an older one is ignored
-			if (CurrentTrack == track)
+			if (_queue.Current == item)
 			{
-				OnTrackFailed();
+				await OnTrackFailedAsync();
 			}
 
 			return;
+		}
+
+		// Get ready for what comes next while this track plays
+		PrefetchNextUrl();
+		if (_queue.RemainingCount <= MinUpcomingTracks)
+		{
+			_ = LoadSuggestionsAsync();
 		}
 
 		// The track is playing: failing to save the history must not be handled as a playback failure
@@ -220,111 +281,78 @@ public partial class PlayerViewModel : ObservableObject
 	}
 
 	/// <summary>
-	/// A track could not be played: in a queue, try the next one, unless every track has failed.
+	/// A track could not be played: try the next one, unless too many tracks have failed in a row.
 	/// </summary>
-	private void OnTrackFailed()
+	private async Task OnTrackFailedAsync()
 	{
 		_failuresInARow++;
 
-		if (_queue.Count > 0 && _failuresInARow < _queue.Count)
+		// The URL may have been the problem: it will be resolved again if the track is played again
+		if (_queue.Current is { } item)
 		{
-			PlayNext();
+			_streamUrls.Invalidate(item.Track.Id);
 		}
-		else
+
+		if (_failuresInARow >= MaxFailuresInARow || !await TryPlayNextAsync())
 		{
 			ErrorMessage = "Unable to play this track.";
 		}
 	}
 
 	/// <summary>
-	/// Keeps the queue in sync with its playlist when tracks are added, removed or reordered.
+	/// Resolves the stream URL of the next track in the background, unless it is already known.
 	/// </summary>
-	private async void OnPlaylistChanged(object? sender, int playlistId)
+	private void PrefetchNextUrl()
 	{
-		// async void: an exception here would close the app, so every error is caught
-		try
+		if (_queue.Next is { } next)
 		{
-			if (playlistId != _queuePlaylistId)
-			{
-				return;
-			}
-
-			var tracks = await _playlists.GetTracksAsync(playlistId);
-
-			// The queue is read after loading: another track or playlist may have been played in the meantime
-			if (playlistId != _queuePlaylistId || _queue.Count == 0)
-			{
-				return;
-			}
-
-			var oldQueue = _queue;
-			var oldIndex = _queueIndex;
-
-			if (tracks.Count == 0)
-			{
-				// The playlist was emptied or deleted: the playing track goes on alone
-				SetQueue(null, []);
-				return;
-			}
-
-			var wasCurrentTrackRemoved = _isCurrentTrackRemoved;
-			var newIndex = IndexOf(tracks, oldQueue[oldIndex].Id);
-			if (newIndex < 0)
-			{
-				// The track at the queue position was removed: the first following track
-				// that is still in the playlist takes its place, and will be played next
-				newIndex = IndexOfFollowingTrack(oldQueue, oldIndex, tracks);
-				wasCurrentTrackRemoved = true;
-			}
-
-			SetQueue(playlistId, tracks);
-			_queueIndex = newIndex;
-			_isCurrentTrackRemoved = wasCurrentTrackRemoved;
-		}
-		catch (Exception ex)
-		{
-			Console.WriteLine($"Unable to update the queue: {ex}");
+			_streamUrls.Prefetch(next.Track.Id);
 		}
 	}
 
 	/// <summary>
-	/// Finds, in the new tracks, the first track that followed the given position in the old queue.
+	/// Adds suggestions at the end of the queue. Only one load runs at a time for a given queue.
 	/// </summary>
-	private static int IndexOfFollowingTrack(IReadOnlyList<PlaylistTrack> oldQueue, int oldIndex, IReadOnlyList<PlaylistTrack> tracks)
+	private Task LoadSuggestionsAsync()
 	{
-		for (var offset = 1; offset < oldQueue.Count; offset++)
+		if (_loadingSuggestions is not { } loading || loading.Task.IsCompleted || loading.QueueVersion != _queue.Version)
 		{
-			var index = IndexOf(tracks, oldQueue[(oldIndex + offset) % oldQueue.Count].Id);
-			if (index >= 0)
-			{
-				return index;
-			}
+			loading = (AddSuggestionsAsync(_queue.Version), _queue.Version);
+			_loadingSuggestions = loading;
 		}
 
-		// None of the old tracks is left: start from the first one
-		return 0;
+		return loading.Task;
 	}
 
-	private void SetQueue(int? playlistId, IReadOnlyList<PlaylistTrack> tracks)
+	/// <summary>
+	/// Loads the mix of the last track of the queue. If it brings nothing new, tries the mix of an earlier track.
+	/// </summary>
+	private async Task AddSuggestionsAsync(int queueVersion)
 	{
-		_queuePlaylistId = playlistId;
-		_queue = tracks;
-		_queueIndex = 0;
-		_isCurrentTrackRemoved = false;
-		HasQueue = tracks.Count > 0;
-	}
-
-	private static int IndexOf(IReadOnlyList<PlaylistTrack> tracks, int trackId)
-	{
-		for (var i = 0; i < tracks.Count; i++)
+		try
 		{
-			if (tracks[i].Id == trackId)
+			for (var attempt = 0; attempt < MaxMixAttempts && _queue.TakeMixSeed() is { } seed; attempt++)
 			{
-				return i;
+				var suggestions = await _musicSource.GetSuggestedTracksAsync(seed.Id);
+
+				// Another track or playlist has been played in the meantime: these suggestions are no longer wanted
+				if (_queue.Version != queueVersion)
+				{
+					return;
+				}
+
+				if (_queue.AppendSuggestions(suggestions) > 0)
+				{
+					PrefetchNextUrl();
+					return;
+				}
 			}
 		}
-
-		return -1;
+		catch (Exception ex)
+		{
+			// Playback goes on with the tracks already queued
+			Console.WriteLine($"Unable to load suggestions: {ex}");
+		}
 	}
 
 	[RelayCommand]
