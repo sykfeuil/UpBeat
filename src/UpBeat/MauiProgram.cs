@@ -14,7 +14,6 @@ public static class MauiProgram
 		builder
 			.UseMauiApp<App>()
 			.UseMauiCommunityToolkit()
-			.UseMauiCommunityToolkitMediaElement(isAndroidForegroundServiceEnabled: true)
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("JetBrainsMono-Regular.ttf", "JetBrainsMonoRegular");
@@ -35,6 +34,7 @@ public static class MauiProgram
 
 		// ViewModels and pages
 		builder.Services.AddSingleton<PlayerViewModel>();
+		builder.Services.AddTransient<HomeViewModel>();
 		builder.Services.AddTransient<SearchViewModel>();
 		builder.Services.AddTransient<PlaylistsViewModel>();
 		builder.Services.AddTransient<PlaylistDetailViewModel>();

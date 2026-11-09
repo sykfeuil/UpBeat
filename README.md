@@ -27,6 +27,7 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 - [x] Play a whole playlist, one track after the other (unplayable tracks are skipped)
 - [x] Endless playback: after a single track or the end of a playlist, similar tracks are played (YouTube mixes)
 - [x] Play next / add to queue (long press a search result)
+- [x] Pixel-art spectrum visualizer and 3-band equalizer (bass, middle, treble) on the home screen
 - [x] Previous/next buttons in the mini player, the media notification and the lock screen
 - [ ] Shuffle
 - [ ] Favorites
@@ -39,7 +40,7 @@ Search for any song on YouTube and listen to the audio only, ad-free, with no li
 | Framework | [.NET MAUI](https://learn.microsoft.com/dotnet/maui/) (C#), .NET 10 |
 | Platform | Android |
 | YouTube extraction | [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) |
-| Audio playback | [CommunityToolkit.Maui.MediaElement](https://learn.microsoft.com/dotnet/communitytoolkit/maui/views/mediaelement) |
+| Audio playback | [AndroidX Media3](https://developer.android.com/media/media3) (ExoPlayer, media session) via the .NET for Android bindings |
 | Architecture | MVVM with [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/) |
 | Local storage | SQLite via [sqlite-net-pcl](https://github.com/praeclarum/sqlite-net) |
 | UI helpers | [CommunityToolkit.Maui](https://learn.microsoft.com/dotnet/communitytoolkit/maui/) (long press, toasts) |

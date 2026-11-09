@@ -23,6 +23,7 @@
 		<Compile Include="..\..\src\UpBeat\Models\Track.cs" Link="Linked\Track.cs" />
 		<Compile Include="..\..\src\UpBeat\Services\PlaybackQueue.cs" Link="Linked\PlaybackQueue.cs" />
 		<Compile Include="..\..\src\UpBeat\Services\StreamUrlCache.cs" Link="Linked\StreamUrlCache.cs" />
+		<Compile Include="..\..\src\UpBeat\Audio\*.cs" LinkBase="Linked\Audio" />
 	</ItemGroup>
 
 </Project>

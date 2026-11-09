@@ -2,16 +2,98 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:UpBeat.Controls"
-             x:Class="UpBeat.Views.HomePage">
+             xmlns:viewModels="clr-namespace:UpBeat.ViewModels"
+             x:Class="UpBeat.Views.HomePage"
+             x:DataType="viewModels:HomeViewModel">
 
-    <Grid RowDefinitions="*,Auto"
-          Padding="16,16,16,0">
+    <ContentPage.Resources>
+        <Style x:Key="BandLabel" TargetType="Label">
+            <Setter Property="FontFamily" Value="JetBrainsMonoBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{StaticResource Gray300}" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+        <Style x:Key="GainLabel" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="HorizontalTextAlignment" Value="End" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+        <Style x:Key="GainSlider" TargetType="Slider">
+            <Setter Property="MinimumTrackColor" Value="{StaticResource NeonRed}" />
+            <Setter Property="MaximumTrackColor" Value="{StaticResource Muted}" />
+            <Setter Property="ThumbImageSource" Value="icon_thumb.png" />
+            <Setter Property="VerticalOptions" Value="Center" />
+        </Style>
+    </ContentPage.Resources>
 
-        <!-- Hosts the app-wide audio player (invisible, audio only) -->
-        <ContentView x:Name="PlayerHost"
-                     IsVisible="False" />
+    <Grid RowDefinitions="*,Auto,Auto"
+          Padding="16,16,16,0"
+          RowSpacing="16">
 
-        <controls:MiniPlayerView Grid.Row="1" />
+        <!-- Spectrum of the playing audio -->
+        <controls:SpectrumVisualizer x:Name="Visualizer"
+                                     Grid.Row="0"
+                                     Margin="0,8,0,0" />
+
+        <!-- Equalizer, like the knobs of a DJ mixer -->
+        <Border Grid.Row="1"
+                BackgroundColor="{StaticResource Surface}"
+                Stroke="{StaticResource Muted}"
+                StrokeThickness="2"
+                StrokeShape="{StaticResource PixelFrame}"
+                Padding="16,8">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                  ColumnDefinitions="48,*,56"
+                  ColumnSpacing="8">
+
+                <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                       Text="EQ"
+                       Style="{StaticResource BandLabel}"
+                       TextColor="White" />
+                <Label Grid.Row="0" Grid.Column="2"
+                       Text="RESET"
+                       Style="{StaticResource BandLabel}"
+                       TextColor="{StaticResource NeonRed}"
+                       HorizontalTextAlignment="End">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding ResetCommand}" />
+                    </Label.GestureRecognizers>
+                </Label>
+
+                <Label Grid.Row="1" Grid.Column="0" Text="LOW" Style="{StaticResource BandLabel}" />
+                <Slider Grid.Row="1" Grid.Column="1"
+                        Minimum="{Binding MinGain}"
+                        Maximum="{Binding MaxGain}"
+                        Value="{Binding LowGain}"
+                        Style="{StaticResource GainSlider}" />
+                <Label Grid.Row="1" Grid.Column="2"
+                       Text="{Binding LowGain, StringFormat='{0:+0;-0;0} dB'}"
+                       Style="{StaticResource GainLabel}" />
+
+                <Label Grid.Row="2" Grid.Column="0" Text="MID" Style="{StaticResource BandLabel}" />
+                <Slider Grid.Row="2" Grid.Column="1"
+                        Minimum="{Binding MinGain}"
+                        Maximum="{Binding MaxGain}"
+                        Value="{Binding MidGain}"
+                        Style="{StaticResource GainSlider}" />
+                <Label Grid.Row="2" Grid.Column="2"
+                       Text="{Binding MidGain, StringFormat='{0:+0;-0;0} dB'}"
+                       Style="{StaticResource GainLabel}" />
+
+                <Label Grid.Row="3" Grid.Column="0" Text="HIGH" Style="{StaticResource BandLabel}" />
+                <Slider Grid.Row="3" Grid.Column="1"
+                        Minimum="{Binding MinGain}"
+                        Maximum="{Binding MaxGain}"
+                        Value="{Binding HighGain}"
+                        Style="{StaticResource GainSlider}" />
+                <Label Grid.Row="3" Grid.Column="2"
+                       Text="{Binding HighGain, StringFormat='{0:+0;-0;0} dB'}"
+                       Style="{StaticResource GainLabel}" />
+            </Grid>
+        </Border>
+
+        <controls:MiniPlayerView Grid.Row="2" />
 
     </Grid>
 
