@@ -26,6 +26,10 @@ public partial class PlayerViewModel : ObservableObject
 	private IReadOnlyList<PlaylistTrack> _queue = [];
 	private int _queueIndex;
 
+	// True when the playing track has been removed from its playlist:
+	// _queueIndex then points to the track that followed it, which will be played next
+	private bool _isCurrentTrackRemoved;
+
 	// Tracks that failed one after the other, to stop instead of looping forever when none can be played
 	private int _failuresInARow;
 
@@ -141,7 +145,16 @@ public partial class PlayerViewModel : ObservableObject
 			return;
 		}
 
-		_queueIndex = (_queueIndex + 1) % _queue.Count;
+		if (_isCurrentTrackRemoved)
+		{
+			// The queue already points to the track that followed the removed one
+			_isCurrentTrackRemoved = false;
+		}
+		else
+		{
+			_queueIndex = (_queueIndex + 1) % _queue.Count;
+		}
+
 		_ = LoadAndPlayAsync(_queue[_queueIndex].ToTrack());
 	}
 
@@ -158,6 +171,9 @@ public partial class PlayerViewModel : ObservableObject
 			return;
 		}
 
+		// If the playing track was removed, the track that followed it took its place in the queue:
+		// the one just before is still the previous track
+		_isCurrentTrackRemoved = false;
 		_queueIndex = (_queueIndex - 1 + _queue.Count) % _queue.Count;
 		await LoadAndPlayAsync(_queue[_queueIndex].ToTrack());
 	}
@@ -180,11 +196,26 @@ public partial class PlayerViewModel : ObservableObject
 			}
 
 			_audioPlayer.Play(streamUrl, track.Title, track.Author, track.ThumbnailUrl);
+		}
+		catch (Exception)
+		{
+			// Only the latest track matters: the failure of an older one is ignored
+			if (CurrentTrack == track)
+			{
+				OnTrackFailed();
+			}
+
+			return;
+		}
+
+		// The track is playing: failing to save the history must not be handled as a playback failure
+		try
+		{
 			await _history.AddAsync(track);
 		}
-		catch (Exception) when (CurrentTrack == track)
+		catch (Exception ex)
 		{
-			OnTrackFailed();
+			Console.WriteLine($"Unable to add the track to the history: {ex}");
 		}
 	}
 
@@ -210,29 +241,76 @@ public partial class PlayerViewModel : ObservableObject
 	/// </summary>
 	private async void OnPlaylistChanged(object? sender, int playlistId)
 	{
-		if (playlistId != _queuePlaylistId)
+		// async void: an exception here would close the app, so every error is caught
+		try
 		{
-			return;
+			if (playlistId != _queuePlaylistId)
+			{
+				return;
+			}
+
+			var tracks = await _playlists.GetTracksAsync(playlistId);
+
+			// The queue is read after loading: another track or playlist may have been played in the meantime
+			if (playlistId != _queuePlaylistId || _queue.Count == 0)
+			{
+				return;
+			}
+
+			var oldQueue = _queue;
+			var oldIndex = _queueIndex;
+
+			if (tracks.Count == 0)
+			{
+				// The playlist was emptied or deleted: the playing track goes on alone
+				SetQueue(null, []);
+				return;
+			}
+
+			var wasCurrentTrackRemoved = _isCurrentTrackRemoved;
+			var newIndex = IndexOf(tracks, oldQueue[oldIndex].Id);
+			if (newIndex < 0)
+			{
+				// The track at the queue position was removed: the first following track
+				// that is still in the playlist takes its place, and will be played next
+				newIndex = IndexOfFollowingTrack(oldQueue, oldIndex, tracks);
+				wasCurrentTrackRemoved = true;
+			}
+
+			SetQueue(playlistId, tracks);
+			_queueIndex = newIndex;
+			_isCurrentTrackRemoved = wasCurrentTrackRemoved;
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Unable to update the queue: {ex}");
+		}
+	}
+
+	/// <summary>
+	/// Finds, in the new tracks, the first track that followed the given position in the old queue.
+	/// </summary>
+	private static int IndexOfFollowingTrack(IReadOnlyList<PlaylistTrack> oldQueue, int oldIndex, IReadOnlyList<PlaylistTrack> tracks)
+	{
+		for (var offset = 1; offset < oldQueue.Count; offset++)
+		{
+			var index = IndexOf(tracks, oldQueue[(oldIndex + offset) % oldQueue.Count].Id);
+			if (index >= 0)
+			{
+				return index;
+			}
 		}
 
-		var currentTrackId = _queue.Count > 0 ? _queue[_queueIndex].Id : -1;
-		var tracks = await _playlists.GetTracksAsync(playlistId);
-
-		var newIndex = IndexOf(tracks, currentTrackId);
-		if (newIndex < 0)
-		{
-			// The current track was removed: the track that followed it will be played next
-			newIndex = Math.Min(_queueIndex, tracks.Count) - 1;
-		}
-
-		SetQueue(tracks.Count > 0 ? playlistId : null, tracks);
-		_queueIndex = newIndex;
+		// None of the old tracks is left: start from the first one
+		return 0;
 	}
 
 	private void SetQueue(int? playlistId, IReadOnlyList<PlaylistTrack> tracks)
 	{
 		_queuePlaylistId = playlistId;
 		_queue = tracks;
+		_queueIndex = 0;
+		_isCurrentTrackRemoved = false;
 		HasQueue = tracks.Count > 0;
 	}
 

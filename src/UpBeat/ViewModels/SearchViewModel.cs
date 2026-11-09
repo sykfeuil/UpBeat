@@ -109,9 +109,14 @@ public partial class SearchViewModel : ObservableObject
 	private async Task AddToPlaylistAsync(Track track)
 	{
 		var playlists = await _playlists.GetPlaylistsAsync();
-		var options = playlists.Select(p => p.Name).Append(NewPlaylistOption);
 
-		var choice = await _dialogs.ChooseAsync("Add to playlist", options);
+		// Each choice carries its playlist ID, so that playlists with the same name are told apart
+		List<PlaylistChoice> choices = [
+			.. playlists.Select(p => new PlaylistChoice(p.Id, p.Name)),
+			new PlaylistChoice(null, NewPlaylistOption),
+		];
+
+		var choice = await _dialogs.ChooseAsync("Add to playlist", choices, c => c.Label);
 		if (choice is null)
 		{
 			return;
@@ -120,7 +125,12 @@ public partial class SearchViewModel : ObservableObject
 		int playlistId;
 		string playlistName;
 
-		if (choice == NewPlaylistOption)
+		if (choice.PlaylistId is int existingPlaylistId)
+		{
+			playlistId = existingPlaylistId;
+			playlistName = choice.Label;
+		}
+		else
 		{
 			var name = await _dialogs.PromptAsync("New playlist", "Name of the playlist", "Create");
 			if (name is null)
@@ -132,14 +142,13 @@ public partial class SearchViewModel : ObservableObject
 			playlistId = playlist.Id;
 			playlistName = playlist.Name;
 		}
-		else
-		{
-			var playlist = playlists.First(p => p.Name == choice);
-			playlistId = playlist.Id;
-			playlistName = playlist.Name;
-		}
 
 		await _playlists.AddTrackAsync(playlistId, track);
 		await _dialogs.ShowToastAsync($"Added to {playlistName}");
 	}
+
+	/// <summary>
+	/// An option of the "Add to playlist" menu: an existing playlist, or a new one (<c>PlaylistId</c> is <c>null</c>).
+	/// </summary>
+	private sealed record PlaylistChoice(int? PlaylistId, string Label);
 }

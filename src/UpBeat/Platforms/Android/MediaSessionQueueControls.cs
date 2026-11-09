@@ -59,7 +59,8 @@ public static class MediaSessionQueueControls
 			_onNext = onNext;
 		}
 
-		// Always show the previous/next buttons
+		// Always show the previous/next buttons, even for a single track (they then do nothing or restart it):
+		// on OxygenOS, the whole media card is disabled, play/pause included, when "next" is not available
 		public override PlayerCommands? AvailableCommands
 		{
 			get
